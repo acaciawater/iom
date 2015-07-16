@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block breadcrumbs %}{% endblock %}
+{% block extrastyle %}
+<style>
+body, html {height: 100%;}
+.fullheight {height: 100%;}
+.wrapper {height: 100%;}
+#map {width: 100%; height: 100%; padding-bottom: 12px;}
+</style>
+{% endblock %}
+{% block script %}
+{{ block.super }}
+{% localize off %}
+<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+<script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
+<script src="http://maps.google.com/maps/api/js?v=3&sensor=false"></script>
+<script src="/static/js/leaflet-plugins-1.3.0/layer/tile/Google.js"></script>
+<script>
+      function main() {
+        var map = new L.Map('map', {
+          zoomControl: false,
+          center: [53.0731419,4.7830892],
+          zoom: 12
+        });
+		var osm = new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+ 		var satellite = new L.Google();
+ 		var road = new L.Google('ROADMAP');
+ 		var terrain = new L.Google('TERRAIN');
+		var baseMaps = {'Terrein':terrain, 'Wegen':road, 'Satelliet': satellite, 'Open Streetmap':osm};
+        var legger = cartodb.createLayer(map, 'https://tkleinen.cartodb.com/api/v2/viz/f3caaf4c-1b11-11e5-8db7-0e9d821ea90d/viz.json')
+        var overlayMaps = {'legger': legger};
+		L.control.layers(baseMaps).addTo(map);	
+        legger.addTo(map);
+		terrain.addTo(map);
+      }
+      // you could use $(window).load(main);
+      window.onload = main;
+    </script>
+<!-- <script> -->
+// window.onload = function() {
+//   cartodb.createVis('map', 'https://tkleinen.cartodb.com/api/v2/viz/f3caaf4c-1b11-11e5-8db7-0e9d821ea90d/viz.json');
+// }
+<!-- </script> -->
+{% endlocalize %}
+{% endblock %}
+{% block brandname %}<div class="navbar-brand">Texel Meet</div>{% endblock %}
+{% block navbar-auth %}
+<ul class="nav navbar-nav navbar-right">
+  {% block navbar-right %}{% endblock navbar-right %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown" text="Beheer van de website">Beheer
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+	  <li><a title="Beheerpagina (inloggen vereist)" href="/admin/iom/{% block admin_url %}{% endblock admin_url %}">Admin</a></li>
+    </ul>
+  </li>
+  {% if user.is_authenticated %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      <li><a href="/accounts/logout">Uitloggen</a></li>
+      <li><a href="/accounts/password/change">Wachtwoord veranderen</a></li>
+    </ul>
+  </li>
+   	{% else %}
+  <li><a href="/accounts/login">Inloggen</a></li>
+   	{% endif %}
+</ul>
+{% endblock navbar-auth %}
+{% block content %}
+<div class = "container-fluid fullheight">
+<div class = "row-fluid fullheight">
+<div class = "col-md-9 fullheight"><div id="map"></div></div>
+<div class = "col-md-3">
+<div class = "list-group scroll">
+<a href="#" class="list-group-item active">Waarnemers<span class="badge">{{queryset.count}}</a>
+{% for e in queryset %}
+<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="#" class="list-group-item">{{e}}
+<br/><div class='text-muted'><small>{{e.organisatie}}</small></div></a>
+{% endfor %}
+</div>
+</div>
+</div>
+{% endblock content %}

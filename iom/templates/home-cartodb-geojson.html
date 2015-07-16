@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load geojson_tags %}
+{% load l10n %}
+{% block breadcrumbs %}{% endblock %}
+{% block extrastyle %}
+<style>
+body, html {height: 100%;}
+.fullheight {height: 100%;}
+.wrapper {height: 100%;}
+#map {width: 100%; height: 100%; padding-bottom: 12px;}
+.divicon
+{
+  background:red;
+  border:2px solid rgba(255,255,255,0.8);
+  color:blue;
+  font-weight:bold;
+  text-align:center;
+  border-radius:50%;
+  line-height:30px;
+}
+.chart-ec {
+	width: 380px;
+	height: 120px;
+}
+      
+</style>
+{% endblock %}
+{% block script %}
+{{ block.super }}
+{% localize off %}
+<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+<script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
+<script>
+window.onload = function() {
+  cartodb.createVis('map', 'https://tkleinen.cartodb.com/api/v2/viz/f3caaf4c-1b11-11e5-8db7-0e9d821ea90d/viz.json')
+  
+  	.done(function(vis, layers) {
+
+//       layers[1].setInteraction(true);
+//       layers[1].on('featureOver', function(e, latlng, pos, data) {
+//         cartodb.log.log(e, latlng, pos, data);
+//       });
+//       var map = vis.getNativeMap();
+//    // meetpunten toevoegen
+// 	  var circle = L.divIcon({className: 'divicon'});
+// 	  var mpStyle = {
+// 	    icon: circle,
+//       };
+//       L.geoJson({{meetpunten|geojsonfeature:":location"|safe}}, {
+//     	    style: function(feature) {
+//     	        return {
+//     	        	stroke: true,
+//     	        	color: "#FF0000",
+//     	        };
+//     	    },
+//     	    pointToLayer: function(feature, latlng) {
+//     	        return new L.CircleMarker(latlng, {radius: 4, fillOpacity: 0.85});
+//     	    },
+//     	    onEachFeature: function (feature, layer) {
+//     	        layer.bindPopup(feature.properties.GPSUserName);
+//     	    }
+//	  	})
+//	  	.addTo(map);
+  	});
+}
+</script>
+{% endlocalize %}
+{% endblock %}
+{% block brandname %}<div class="navbar-brand">Texel Meet</div>{% endblock %}
+{% block navbar-auth %}
+<ul class="nav navbar-nav navbar-right">
+  {% block navbar-right %}{% endblock navbar-right %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown" text="Beheer van de website">Beheer
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+	  <li><a title="Beheerpagina (inloggen vereist)" href="/admin/iom/{% block admin_url %}{% endblock admin_url %}">Admin</a></li>
+    </ul>
+  </li>
+  {% if user.is_authenticated %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      <li><a href="/accounts/logout">Uitloggen</a></li>
+      <li><a href="/accounts/password/change">Wachtwoord veranderen</a></li>
+    </ul>
+  </li>
+   	{% else %}
+  <li><a href="/accounts/login">Inloggen</a></li>
+   	{% endif %}
+</ul>
+{% endblock navbar-auth %}
+{% block content %}
+<div class = "container-fluid fullheight">
+<div class = "row-fluid fullheight">
+<div class = "col-md-9 fullheight"><div id="map"></div></div>
+<div class = "col-md-3">
+<div class = "list-group scroll">
+<a href="#" class="list-group-item active">Waarnemers<span class="badge">{{waarnemers.count}}</a>
+{% for w in waarnemers %}
+<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="#" class="list-group-item">{{w}}
+<br/><div class='text-muted'><small>{{w.organisatie}}</small></div></a>
+{% endfor %}
+</div>
+</div>
+</div>
+{% endblock content %}

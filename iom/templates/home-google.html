@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% block breadcrumbs %}{% endblock %}
+{% block extrastyle %}
+<style type="text/css">
+	body, html {
+		height: 100%;
+	}
+	.fullheight {
+		height: 100%;
+	}
+	.wrapper {
+		height: 100%;
+	}
+	#map {
+		width: 100%; 
+		height: 100%; 
+		padding-bottom: 12px;
+	}
+	.labels {
+		color: black;
+		background-color: #FFFF66;
+		font-family: "Lucida Grande", "Arial", sans-serif;
+		font-size: 10px;
+		font-weight: bold;
+		text-align: center;
+		width: 54px;     
+		border: none;
+		white-space: nowrap;
+/* 		text-shadow: 0px 0px 12px red; */
+	}
+	.nolabels {
+	    display: none; 
+	}
+	.scroll {
+		overflow-y: auto;
+		max-height: 800px;
+	}
+ </style>
+{% endblock %}
+
+{% block script %}
+{{ block.super }}
+{% localize off %}
+<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script src="{% static "js/markerwithlabel.js" %}"></script>
+<script>
+var map;
+function fitAddress(map, address) {
+	var geocoder = new google.maps.Geocoder();
+	if (geocoder) {
+	   geocoder.geocode({ 'address': address }, function (results, status) {
+	     if (status == google.maps.GeocoderStatus.OK) {
+	         var b = results[0].geometry.viewport;
+	         var ne = b.getNorthEast();
+	         var sw = b.getSouthWest();
+	         map.fitBounds([[sw.lat(), sw.lng()],
+	                        [ne.lat(), ne.lng()]]);	     
+	     }
+	   });
+	}
+}
+function initialize() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 11,
+        mapTypeId: google.maps.MapTypeId.{{maptype}},
+        center: new google.maps.LatLng(53.0731419,4.7830892)
+    });
+	var json = {{content|safe}};
+	var bounds = new google.maps.LatLngBounds();
+	var infowindow = new google.maps.InfoWindow();
+	var marker;
+	markers = new Array();
+	json.forEach(function(loc) {
+			marker = new MarkerWithLabel({
+			icon: {
+			      path: google.maps.SymbolPath.CIRCLE,
+			      scale: 6,
+			      fillColor: 'red',
+			      fillOpacity: 0.8,
+			      strokeColor: 'white',
+			      strokeWeight: 2
+			},
+   			position: new google.maps.LatLng(loc.lat,loc.lon),
+			title: loc.name, 
+   			map: map,
+   			labelContent: loc.name,
+   	        labelAnchor: new google.maps.Point(27, -10),
+   	        labelClass: 'labels',
+   	        labelStyle: {'opacity': 0.8},
+   	        labelInBackground: true   			
+   		});
+   		markers.push(marker);
+   		google.maps.event.addListener(marker, 'click', (function(marker) {
+	        return function() {
+	          infowindow.setContent(loc.info);
+	          infowindow.open(map, marker);
+	        }
+	      })(marker));
+		bounds.extend(marker.position);
+	});
+	map.fitBounds(bounds);
+}
+
+function showMarker(m) {
+	markers[m].setAnimation(google.maps.Animation.BOUNCE);	
+}
+function hideMarker(m) {
+	markers[m].setAnimation(null);	
+}
+
+$(function(){initialize();});
+
+</script>
+{% endlocalize %}
+{% endblock %}
+{% block navbar-auth %}
+<ul class="nav navbar-nav navbar-right">
+  {% block navbar-right %}{% endblock navbar-right %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown" text="Beheer van de website">Beheer
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+	  <li><a title="Beheerpagina (inloggen vereist)" href="/admin/gorinchem/{% block admin_url %}{% endblock admin_url %}">Admin</a></li>
+    </ul>
+  </li>
+  {% if user.is_authenticated %}
+  <li class="dropdown">
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
+    <b class="caret"></b></a>
+    <ul class="dropdown-menu">
+      <li><a href="/accounts/logout">Uitloggen</a></li>
+      <li><a href="/accounts/password/change">Wachtwoord veranderen</a></li>
+    </ul>
+  </li>
+   	{% else %}
+  <li><a href="/accounts/login">Inloggen</a></li>
+   	{% endif %}
+</ul>
+{% endblock navbar-auth %}
+{% block content %}
+<div class = "container-fluid fullheight">
+<div class = "row-fluid fullheight">
+<div class = "col-md-9 fullheight"><div id=map></div></div>
+<div class = "col-md-3">
+<div class = "list-group scroll">
+<a href="#" class="list-group-item active">Eigenaren<span class="badge">{{queryset.count}}</a>
+{% for e in queryset %}
+<a onmouseover="showMarker({{forloop.counter0}});" onmouseout="hideMarker({{forloop.counter0}});" href="#" class="list-group-item">{{e}}
+<br/><div class='text-muted'><small>{{e.adres.straat}}, {{e.adres.plaats}}</small></div></a>
+{% endfor %}
+</div>
+</div>
+</div>
+{% endblock content %}
