@@ -2,8 +2,7 @@
 {% load staticfiles %}
 {% load l10n %}
 {% block createdone %}
-	var qry = "SELECT * FROM waarnemers WHERE waarnemer = '{{object.pk}}'";
-	//layers[1].getSubLayer(3).setSQL(qry);
+	var qry = "SELECT * FROM waarnemers_1 WHERE waarnemer = '{{object.pk}}'";
 	var sql = new cartodb.SQL({ user: 'tkleinen' });
 	var map = vis.getNativeMap();
     sql.getBounds(qry).done(function(bounds) {
