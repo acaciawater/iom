@@ -13,9 +13,14 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
     <style>
 		#footer > .navbar {padding-top: 2px; padding-bottom: 2px; height: 24px; min-height:24px !important;}
-		body > .wrapper {padding-bottom: 32px; padding-top: 70px;}
+		.navbar-xs { min-height:28px; height: 28px; }
+		.navbar-xs .navbar-brand { padding: 0px 2px;font-size: 14px;line-height: 28px; }
+		.navbar-xs .navbar-nav > li > a {  padding-top: 0px; padding-bottom: 0px; line-height: 28px; }
+		body > .wrapper {padding-bottom: 32px; padding-top: 50px;}
 		.nav > .breadcrumb {float: left; margin-top: 8px; padding-bottom: 0px;}
 		.credit {font-size: 90%; }
+		.barbut { height: 20px; margin-top: 4px; }
+		.akvo { height: 16px; margin-top: 6px; }
     </style>
 	{% endblock %}
 	{% block extrastyle %}{% endblock extrastyle %}
@@ -27,7 +32,7 @@
   </head>
   <body>
     <div class="wrapper">
-	<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+	<nav class="navbar-xs navbar-default navbar-fixed-top" role="navigation">
 	  <div class="container-fluid">
 	    {% block navbar-header %}
 	    <div class="navbar-header">
@@ -48,9 +53,8 @@
 		      </ul>
 	      {% endblock navbar %}
 	      {% block navbar-auth %}
+	      {% block navbar-right %}
 	      <ul class="nav navbar-nav navbar-right">
-	        {% block navbar-right %}{% endblock navbar-right %}
-	        <li><a href="/admin/iom/{% block admin_url %}{% endblock admin_url %}">Beheer</a></li>
 	        {% if user.is_authenticated %}
 	        <li class="dropdown">
 	          <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
@@ -60,10 +64,22 @@
 	            <li><a href="/accounts/password/change">Wachtwoord veranderen</a></li>
 	          </ul>
 	        </li>
+	        <li><a href="/admin/iom/{% block admin_url %}{% endblock admin_url %}" title="Ga naar de beheerpagina">Beheer</a></li>
           	{% else %}
 	        <li><a href="/accounts/login">Inloggen</a></li>
           	{% endif %}
+          	{% if akvo.instance %}
+	        <li class="dropdown">
+	          <a class="dropdown-toggle" data-toggle="dropdown" href="#"><img class="navbar-brand akvo" src="{% static "img/akvoFlowLogo.svg" %}"></img>
+	          <b class="caret"></b></a>
+	          <ul class="dropdown-menu">
+	            <li><a href="{{akvo.instance}}" title="Ga naar het Acacia dashboard op Akvoflow">Website</a></li>
+	            <li><a href="/akvo?next=/home" title="Nieuwe meetwaarden ophalen" >Acualiseren</a></li>
+	          </ul>
+			</li>
+			{% endif %}
 	      </ul>
+		  {% endblock navbar-right %}
 	      {% endblock navbar-auth %}
 	    </div><!-- /.navbar-collapse -->
 	  </div><!-- /.container-fluid -->
@@ -77,7 +93,7 @@
 	        <div class="navbar-inner navbar-content-center">
     			{% block footer-text %}
 	            <p class="text-muted text-center credit">
-            		<a href="http://www.acaciawater.com">Acacia Water</a> • Jan van Beaumontstraat 1 • 2805 RN Gouda • The Netherlands • Tel: +31 (0)182 - 686424 • Mail: <a href="mailto:info@acaciawater.com">info@acaciawater.com</a>.
+            		<a href="http://www.acaciawater.com">Acacia Water</a> • van Hogendorpplein 4 • 2805 BM Gouda • The Netherlands • Tel: +31 (0)182 - 686424 • Mail: <a href="mailto:info@acaciawater.com">info@acaciawater.com</a>.
 				</p>
     			{% endblock footer-text %}
 	        </div>

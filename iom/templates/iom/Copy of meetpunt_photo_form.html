@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Foto uploaden</title>
+</head>
+<body>
+<form action="" method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Upload" />
+	<a href="javascript:close_window();"> Close</a>
+</form>
+</body>
+</html>
