@@ -62,7 +62,8 @@ class ContextMixin(object):
         context = super(ContextMixin, self).get_context_data(**kwargs)
         context['cartodb'] = get_object_or_404(CartoDb, pk=settings.CARTODB_ID)
         context['akvo'] = get_object_or_404(AkvoFlow, pk=settings.AKVOFLOW_ID)
-        context['laatste'] = Waarneming.objects.all().order_by('-datum')[0]
+        w = Waarneming.objects.all().order_by('-datum')
+        context['laatste'] = w[0] if w else None
         return context
 
 class HomeView(ContextMixin,TemplateView):
