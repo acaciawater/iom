@@ -163,10 +163,10 @@ def updateCartodb(cartodb, mps):
         values = 'VALUES ' + s
         
         logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
-        sql = "DELETE FROM waarnemingen WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(waarnemer=unicode(m.waarnemer), meetpunt=escape(m.name))
+        sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=cartodb.datatable, waarnemer=unicode(m.waarnemer), meetpunt=escape(m.name))
         cartodb.runsql(sql)
         
-        sql = 'INSERT INTO waarnemingen (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) ' + values
+        sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) '.format(table=cartodb.datatable) + values
         cartodb.runsql(sql)
 
 def exportCartodb(cartodb, mps, table):

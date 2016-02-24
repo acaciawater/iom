@@ -205,7 +205,8 @@ class CartoDb(models.Model):
     viz = models.CharField(max_length=100,verbose_name='Visualisatie')    
     key = models.CharField(max_length=100,verbose_name='API key')
     sql_url = models.CharField(max_length=100,verbose_name='SQL url')
-
+    datatable = models.CharField(max_length=50,verbose_name='tabelnaam')
+    
     class Meta:
         verbose_name = 'Cartodb configuratie'        
         
