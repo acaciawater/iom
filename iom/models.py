@@ -8,9 +8,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from acacia.data.models import MeetLocatie, Chart
 
-# This is an auto-generated Django model module created by ogrinspect.
 from django.contrib.gis.db import models as geo
-from _ast import alias
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User)
@@ -42,8 +40,7 @@ class Adres(models.Model):
         verbose_name_plural = 'Adressen'
 
 from django.core.validators import RegexValidator
-phone_regex = RegexValidator(regex=r'^(?:\+)?[0-9\-]{10,11}$',
-                             message="Ongeldig telefoonnummer")
+phone_regex = RegexValidator(regex=r'^(?:\+)?[0-9\-]{10,11}$', message="Ongeldig telefoonnummer")
 
 class Organisatie(models.Model):
     naam = models.CharField(max_length=50)
@@ -156,7 +153,11 @@ class Meetpunt(MeetLocatie):
     def photo(self):
         return '<a href="{url}"><img src="{url}" height="60px"/></a>'.format(url=self.photo_url) if self.photo_url else ''
     photo.allow_tags=True
-    
+
+    def get_events(self):
+        series = self.get_series()
+        return [e for e in series.event_set.all()]
+
 class Waarneming(models.Model):
     naam = models.CharField(max_length=40)
     waarnemer = models.ForeignKey(Waarnemer)
