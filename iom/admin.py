@@ -9,11 +9,12 @@ from django.forms import Textarea
 from django.contrib.gis.db import models
 from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming
 from acacia.data.models import DataPoint, ManualSeries
+from acacia.data.events.models import Event
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .util import maak_meetpunt_grafiek
+from .util import maak_meetpunt_grafiek, zoek_tijdreeksen
 
 import re
 from iom.models import Waarneming, Alias
@@ -70,10 +71,31 @@ def update_cdb_waarnemers(modeladmin, request, queryset):
     util.updateCartodb(CartoDb.objects.get(pk=1), mps)
 update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren voor meetpunten van geselecteerde waarnemers'
 
+class EventInline(admin.TabularInline):
+    model = Event
+
+def link_series1(modeladmin, request, queryset):
+    for m in queryset:
+        series = zoek_tijdreeksen(m.location,1)
+        for s in series:
+            if not s.mlocatie:
+                s.mlocatie = m
+                s.save()
+link_series1.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteerde meetpunten'
+
+def link_series(modeladmin, request, queryset):
+    for m in queryset:
+        for cs in m.chart.series.all():
+            for s in [cs.series, cs.series2]:
+                if s and not s.mlocatie:
+                    s.mlocatie = m
+                    s.save()
+link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteerde meetpunten'
+    
 @admin.register(Meetpunt)
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
-    actions = [maak_grafiek,update_series,update_cdb_meetpunten]
+    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series]
     list_display = ('name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', )
     inlines = [WaarnemingInline,]
