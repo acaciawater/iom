@@ -12,9 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.sys.path.append('/home/theo/git/acaciadata/acacia')
-
-SECRET_KEY = '@35pjomgjea52@2vy)7kdhm=k9l+pu!!!4(p^!sd0l8ssj7x0='
+os.sys.path.append('/home/theo/texelmeet/acaciadata')
 
 SITE_ID = 1
 
@@ -24,6 +22,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = (
     'grappelli',
+    'polymorphic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.sites',
@@ -36,6 +35,7 @@ INSTALLED_APPS = (
     'iom',
     'acacia',
     'acacia.data',
+    'acacia.data.events',
     'registration',
     'djcelery',
 #    'nested_admin',
@@ -72,17 +72,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'iom.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.mysql',
-        'NAME': 'iom',
-        'USER': 'acacia',
-        'PASSWORD': 'Beaumont1',
-        'HOST': '',
-        'PORT': '',
-    }
-}
-
 LANGUAGE_CODE = 'nl-nl'
 
 TIME_ZONE = 'Europe/Amsterdam'
@@ -112,12 +101,10 @@ LOGGING_URL = '/logs/'
 LOGGING_ROOT = os.path.join(BASE_DIR, 'logs')
 
 GRAPPELLI_ADMIN_TITLE='Beheer van Texel Meet'
-POSTCODE_API_KEY = 'c48b31116d112971df7e669d963f8a9b0c1e8c98'
 
 # registration stuff
 ACCOUNT_ACTIVATION_DAYS = 7
 LOGIN_REDIRECT_URL = '/'
-DEFAULT_FROM_EMAIL = 'noreply@acaciawater.com'
 REGISTRATION_AUTO_LOGIN = True
 
 AUTH_PROFILE_MODULE = 'iom.UserProfile'
@@ -166,3 +153,5 @@ LOGGING = {
         },
     },
 }
+
+from secrets import *
