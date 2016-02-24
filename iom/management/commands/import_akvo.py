@@ -11,7 +11,7 @@ from django.contrib.gis.geos import Point
 from django.utils import timezone
 from django.conf import settings
 import os,pytz,datetime
-import logging
+import json,logging
 
 from acacia.data.models import ProjectLocatie
 from iom import util
@@ -33,12 +33,17 @@ def get_or_create_waarnemer(akvoname):
         waarnemer = alias.waarnemer
         logger.debug('Waarnemer {name} gevonden met alias {alias}'.format(name=unicode(waarnemer),alias=alias))
     except Alias.DoesNotExist:
-        # Bestaat er al een waarnemer met deze achternaam?
-        words = akvoname.split(r'\s+')
+        # Bestaat er al een waarnemer met deze naam?
+        words = akvoname.split()
         if len(words) > 1:
+            voornaam = words[0]
+            initialen = voornaam[0]
             achternaam = words[-1]
-            tussenvoegsel = ' '.join(words[:-1])
-            waarnemer, created = Waarnemer.objects.get_or_create(tussenvoegsel=tussenvoegsel, achternaam=achternaam)
+            if len(words) > 2:
+                tussenvoegsel = ' '.join(words[1:-1])
+            else:
+                tussenvoegsel = ''
+            waarnemer, created = Waarnemer.objects.get_or_create(initialen=initialen, voornaam=voornaam, tussenvoegsel=tussenvoegsel, achternaam=achternaam)
         else:
             waarnemer, created = Waarnemer.objects.get_or_create(achternaam=akvoname)
         if created:
@@ -56,14 +61,15 @@ def download_photo(url):
         return os.path.join(settings.PHOTO_URL,filename)
     except:
         return url
-            
+                
 def importAkvoRegistration(api,akvo,projectlocatie,user):
     surveyId = akvo.regform
     meetpunten=set()
     num_meetpunten = 0
     
     beginDate=as_timestamp(akvo.last_update)
-    instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
+#    instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
+    instances = api.get_registration_instances(surveyId).items()
     for key,instance in instances:
         identifier=instance['surveyedLocaleIdentifier']
         displayName = instance['surveyedLocaleDisplayName']
@@ -72,11 +78,18 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
         date=instance['collectionDate']
         date=datetime.datetime.utcfromtimestamp(date/1000.0).replace(tzinfo=pytz.utc)
         answers = api.get_answers(instance['keyId'])
-        akvowaarnemer = api.get_answer(answers,questionID='2050946')
-        meetid = api.get_answer(answers,questionID='6040925')
-        foto = api.get_answer(answers,questionID='8070919')
-        geoloc = api.get_answer(answers,questionID='9070917')
-        omschrijving = api.get_answer(answers,questionID='1040924')
+        akvowaarnemer = api.get_answer(answers,questionText='Waarnemer')
+        try:
+            obj = json.loads(akvowaarnemer)
+            if isinstance(obj, list):
+                akvowaarnemer = obj[0]['text']
+        except Exception as e:
+            logger.Exception('Probleem met naam van waarnemer {}'.format(akvowaarnemer),e)
+            akvowaarnemer = None
+        meetid = api.get_answer(answers,questionText='Meetpunt ID')
+        foto = api.get_answer(answers,questionText='Maak een foto van het meetgebied')
+        geoloc = api.get_answer(answers,questionText='Geolocatie')
+        omschrijving = api.get_answer(answers,questionText='Meetpunt omschrijving')
         num_meetpunten += 1
         try:
             lat,lon,elev,code = geoloc.split('|')
@@ -128,8 +141,8 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
             meetpunten.add(meetpunt)
 
         if device != 'IMPORTER':
-            ec = api.get_answer(answers,questionID='3020916')
-            diep = api.get_answer(answers,questionID='6060916')
+            ec = api.get_answer(answers,questionText='Meet EC waarde - ECOND') 
+            diep = api.get_answer(answers,questionText='Diep of ondiep gemeten?')
             waarneming_naam = maak_naam('EC',diep)
     
             try:
