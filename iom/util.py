@@ -105,7 +105,7 @@ def updateSeries(mps, user):
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
-            series, created = mp.manualseries_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'line', 'unit': 'uS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'line', 'unit': 'uS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=mp.displayname))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': w.waarde})
