@@ -68,8 +68,8 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
     num_meetpunten = 0
     
     beginDate=as_timestamp(akvo.last_update)
-#    instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
-    instances = api.get_registration_instances(surveyId).items()
+    instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
+#    instances = api.get_registration_instances(surveyId).items()
     for key,instance in instances:
         identifier=instance['surveyedLocaleIdentifier']
         displayName = instance['surveyedLocaleDisplayName']
@@ -96,7 +96,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
             location = Point(float(lon),float(lat),srid=4326)
             location.transform(28992)
         except:
-            logger.error('Probleem met coordinaten {loc}'.format(loc=geoloc))
+            logger.error('Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
             continue
 
         akvoname = akvowaarnemer or submitter
@@ -161,7 +161,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
                 waarneming.save()
                 meetpunten.add(meetpunt)
         
-    logger.info('Aantal nieuwe meetpunten: {punt}'.format(punt=num_meetpunten))
+    logger.info('Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
 
     return meetpunten
    
@@ -192,9 +192,9 @@ def importAkvoMonitoring(api,akvo):
                 date=datetime.datetime.utcfromtimestamp(date/1000.0).replace(tzinfo=pytz.utc)
 
                 answers = api.get_answers(instance['keyId'])
-                ec=api.get_answer(answers,questionID='2060924')
-                foto=api.get_answer(answers,questionID='5040929')
-                diep=api.get_answer(answers,questionID='7080929')
+                ec=api.get_answer(answers,questionText='EC waarde - ECOND')
+                foto=api.get_answer(answers,questionID='Maak een foto van het meetgebied')
+                diep=api.get_answer(answers,questionText='Diep of ondiep')
                 waarneming_naam = maak_naam('EC',diep)
                 
                 if foto:
