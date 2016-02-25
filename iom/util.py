@@ -86,6 +86,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
         chart, created = Chart.objects.get_or_create(name = name, defaults = {
                                                              'user': user, 
                                                              'title': name, 
+                                                             'percount': 0,
                                                              'description': unicode(meetpunt.description)})
         meetpunt.chart=chart
         meetpunt.save()
@@ -93,7 +94,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
     series = zoek_tijdreeksen(meetpunt.location,1)
     for s in series:
         pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
-        cs, created = chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
+        chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
     chart.save()
     
     maak_meetpunt_thumbnail(meetpunt)
