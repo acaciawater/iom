@@ -79,13 +79,6 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
         date=datetime.datetime.utcfromtimestamp(date/1000.0).replace(tzinfo=pytz.utc)
         answers = api.get_answers(instance['keyId'])
         akvowaarnemer = api.get_answer(answers,questionText='Waarnemer')
-        try:
-            obj = json.loads(akvowaarnemer)
-            if isinstance(obj, list):
-                akvowaarnemer = obj[0]['text']
-        except Exception as e:
-            logger.Exception('Probleem met naam van waarnemer {}'.format(akvowaarnemer),e)
-            akvowaarnemer = None
         meetid = api.get_answer(answers,questionText='Meetpunt ID')
         foto = api.get_answer(answers,questionText='Maak een foto van het meetgebied')
         geoloc = api.get_answer(answers,questionText='Geolocatie')
@@ -267,6 +260,8 @@ class Command(BaseCommand):
                 util.updateSeries(mp, user)
                 logger.debug('Cartodb actualiseren')
                 util.updateCartodb(cartodb, mp)
+                logger.debug('Triggers evalueren')
+                util.processTriggers(mp)
             
             akvo.last_update = timezone.now()
             akvo.save()        
