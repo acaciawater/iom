@@ -33,6 +33,7 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^accounts/', include('registration.backends.default.urls')),    
     url(r'^data/', include('acacia.data.urls',namespace='acacia')),
+    url(r'^event/', include('acacia.data.events.urls'))
 #    url(r'^nested_admin/', include('nested_admin.urls')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
