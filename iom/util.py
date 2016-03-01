@@ -202,4 +202,51 @@ def exportCartodb(cartodb, mps, table):
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
         
+# def processTriggers(mps):
+#     
+#     from itertools import groupby
+# 
+#     # group events by target
+#     key = lambda e:e.target
+#     events = sorted([e for e in mp.get_events() for mp in mps],key=key)
+#     eventgroups = groupby(events,key=key)
+# 
+#     for target,events in eventgroups.items():
+#         for e in events:
+#             history = e.history_set.filter(sent=True).order_by('-date')
+#             start = history[0].date if history else None
+#             data = e.trigger.select(start=start)
+#             num = data.count()
+#             if num > 0:
+#                 with Messenger(e) as m:
+#                     # add message for every event
+#                     for date,value in data.iteritems():
+#                         if start and date <= start:
+#                             # dont send message twice
+#                             continue
+#                         m.add(e.format_message(date,value,html=True))
+#                     msg = 'Event {name} was triggered {count} times for {ser} since {date}'.format(name=e.trigger.name, count=num, ser=series,date=start)
+#             else:
+#                 msg = 'No alarms triggered for trigger {name} since {date}'.format(date=start, name=t.name)
+#             logger.debug(msg)
 
+def processTriggers(mps):
+    
+    for mp in mps:
+        for e in mp.get_events():
+            history = e.history_set.filter(sent=True).order_by('-date')
+            start = history[0].date if history else None
+            data = e.trigger.select(start=start)
+            num = data.count()
+            if num > 0:
+                with Messenger(e) as m:
+                    # add message for every event
+                    for date,value in data.iteritems():
+                        if start and date <= start:
+                            # dont send message twice
+                            continue
+                        m.add('Meetpunt {mp}: {msg}'.format(mp=mp,msg=e.format_message(date,value)))
+                    msg = 'Event {name} was triggered {count} times for {mp} since {date}'.format(name=e.trigger.name, count=num, mp=mp,date=start)
+            else:
+                msg = 'No alarms triggered for trigger {name} since {date}'.format(date=start, name=t.name)
+            logger.debug(msg)
