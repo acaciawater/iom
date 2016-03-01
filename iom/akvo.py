@@ -217,12 +217,27 @@ class FlowAPI:
         '''Retrieve answers for a survey instance'''
         url = self.format_url('question_answers?surveyInstanceId={id}'.format(id=survey_instance_id))
         return self.datefilter(self.get_response(url,'question_answers'))
+
+    def format_value(self,a):
+        try:
+            atype = a['type']
+            if atype == 'DATE':
+                return datetime.utcfromtimestamp(int(a['value'])/1000)
+            elif atype == 'OPTION':
+                items = json.loads(a['value'])
+                return '|'.join([item['text'] for item in items])
+            elif atype == 'CASCADE':
+                items = json.loads(a['value'])
+                return '|'.join([item['name'] for item in items])
+        except:
+            pass
+        return a['value']
     
     def get_answer(self, answers, **kwargs):
         key,value = kwargs.popitem()
         for a in answers:
             if a[key] == value:
-                return a['value']
+                return self.format_value(a)
         return None
     
     def to_csv(self, surveyId, destination, callback=None, registrationId = None, registrationFields = {}):
