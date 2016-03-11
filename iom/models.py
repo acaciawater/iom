@@ -111,7 +111,7 @@ class Alias(models.Model):
 class Meetpunt(MeetLocatie):
     # Akvo flow meetpunt gegevens
     identifier=models.CharField(max_length=50)
-    displayname = models.CharField(max_length=50)
+    displayname = models.CharField(max_length=100)
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
     photo_url=models.CharField(max_length=200,null=True,blank=True)
@@ -159,7 +159,7 @@ class Meetpunt(MeetLocatie):
         return [e for e in series.event_set.all()]
 
 class Waarneming(models.Model):
-    naam = models.CharField(max_length=40)
+    naam = models.CharField(max_length=100)
     waarnemer = models.ForeignKey(Waarnemer)
     locatie = models.ForeignKey(Meetpunt)
     device = models.CharField(max_length=50)
