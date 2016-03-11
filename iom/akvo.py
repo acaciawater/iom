@@ -215,7 +215,7 @@ class FlowAPI:
     def get_answers(self, survey_instance_id):
         '''Retrieve answers for a survey instance'''
         url = self.format_url('question_answers?surveyInstanceId={id}'.format(id=survey_instance_id))
-        return self.datefilter(self.get_response(url,'question_answers'))
+        return self.get_response(url,'question_answers')
 
     def format_value(self,a):
         try:
