@@ -82,6 +82,14 @@ class Waarnemer(models.Model):
             s += self.tussenvoegsel + ' '
         return s + self.achternaam
     
+    def fullname(self):
+        s = ''
+        if self.voornaam and len(self.voornaam) > 0:
+            s = self.voornaam + ' '
+        if self.tussenvoegsel and len(self.tussenvoegsel) > 0:
+            s += self.tussenvoegsel + ' '
+        return s + self.achternaam
+        
     def aantal_meetpunten(self):
         return self.meetpunt_set.count()
     
@@ -156,8 +164,8 @@ class Meetpunt(MeetLocatie):
 
     def get_events(self):
         series = self.get_series()
-        return [e for e in series.event_set.all()]
-
+        return [e for e in series.event_set.all()] if series else 0
+        
 class Waarneming(models.Model):
     naam = models.CharField(max_length=100)
     waarnemer = models.ForeignKey(Waarnemer)
