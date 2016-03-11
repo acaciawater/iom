@@ -62,7 +62,6 @@ def utf8(d):
 
 class FlowAPI:
 
-
     def __init__(self,instance,key,secret):
         self.key=str(key)
         self.secret=str(secret)
@@ -308,7 +307,7 @@ class FlowAPI:
 
 KEY=r'B3+dye342B4HpLuJ+Ked3GCyjjTVA5/4fv1ZT0SEKi0='
 SECRET=r'fBA5XsXAtSXzbOs4acpg5l2S+ptPPZhiKKzMSwYTfqQ='
-INSTANCE=r'http://acacia.akvoflow.org/'
+INSTANCE=r'https://acacia.akvoflow.org/'
 
 if __name__ == '__main__':
     now1 = datetime.now()
@@ -317,5 +316,5 @@ if __name__ == '__main__':
     now2 = as_datetime(tsnow2)
     
     api = FlowAPI(instance=INSTANCE, key=KEY, secret=SECRET)
-    devs = api.get_devices()
+    devs = api.get_surveys()
     print devs
