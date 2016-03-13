@@ -60,7 +60,7 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     plt.figure(figsize=(9,3))
     options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
-
+    # TODO: alle tijdreeksen laten zien rondom een meetpunt!
     mps = zoek_meetpunten(meetpunt.location, 1)
     for mp in mps:
         s = mp.get_series('EC')
@@ -94,7 +94,10 @@ def maak_meetpunt_grafiek(meetpunt,user):
     series = zoek_tijdreeksen(meetpunt.location,1)
     for s in series:
         pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
-        chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
+        cs, created = chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
+        if s.type != cs.type:
+            cs.type = s.type
+            cs.save()
     chart.save()
     
     maak_meetpunt_thumbnail(meetpunt)
@@ -106,7 +109,7 @@ def updateSeries(mps, user):
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'line', 'unit': 'uS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'uS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=mp.displayname))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': w.waarde})
@@ -122,6 +125,10 @@ def updateSeries(mps, user):
     logger.info('Thumbnails tijdreeksen aanpassen')
     for series in allseries:
         series.getproperties().update()
+        lineType = 'scatter' if series.aantal < 2 else 'line'
+        if series.type != lineType:
+            series.type = lineType
+            series.save()
         series.make_thumbnail()
 
     logger.info('Grafieken aanpassen')
