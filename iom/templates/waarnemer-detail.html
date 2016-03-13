@@ -2,9 +2,9 @@
 {% load staticfiles %}
 {% load l10n %}
 {% load iom_filters %}
-{% block title %}Texel Meet - {{object}} {% endblock %}
+{% block title %}{{project|default:"Inlaat op Maat"}} - {{object}} {% endblock %}
 {% block createdone %}
-	var qry = "SELECT * FROM waarnemingen WHERE waarnemer = '{{object}}'";
+	var qry = "SELECT * FROM {{cartodb.datatable}} WHERE waarnemer = '{{object}}'";
 	var sql = new cartodb.SQL({ user: 'tkleinen' });
     sql.getBounds(qry).done(function(bounds) {
    		theMap.fitBounds(bounds);

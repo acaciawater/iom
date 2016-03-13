@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
  	<link href="{% static "img/favicon.ico" %}" rel="icon" type="image/x-ico" />
-	<title>{% block title %}Texel Meet{% endblock %}</title>
+	<title>{% block title %}{{project|default:"Inlaat op Maat"}}{% endblock %}</title>
 	{% block style %}
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
@@ -45,7 +45,7 @@
 	    </div>
 	    {% endblock navbar-header %}
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-		  {% block brandname %}<div class="navbar-brand"><a href="/home">Texel Meet</a></div>{% endblock %}
+		  {% block brandname %}<div class="navbar-brand"><a href="/home">{{project|default:"Inlaat op Maat"}}</a></div>{% endblock %}
 	      {% block navbar %} 
 		      <ul class="nav navbar-nav">
 			    {% block breadcrumbs %}

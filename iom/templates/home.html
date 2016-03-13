@@ -55,10 +55,12 @@ window.onload = function() {
 <div class = "row-fluid fullheight">
 <div class = "col-md-9 fullheight">
  <div class= "row fullheight"><div class="col-md-12 fullheight"><div id="map"></div></div></div>
+ {% if laatste %}
  <div class= "row"><div class="col-md-12">
  <div class="update text-muted"><small>Geactualiseerd op {{akvo.last_update}}. Laatste waarneming door {{laatste.waarnemer}} op {{laatste.datum}}</small></div>
  </div>
  </div>
+ {% endif %}
 </div>
 <div class = "col-md-3">
 {% block list %}

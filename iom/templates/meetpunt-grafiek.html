@@ -3,7 +3,7 @@
 {% load l10n %}
 {% load iom_filters %}
 {% block breadcrumbs %}{% endblock %}
-{% block title %}Texel Meet - {{object.name}} {% endblock %}
+{% block title %}{{project|default:"Inlaat op Maat"}} - {{object.name}} {% endblock %}
 {% block extrastyle %}
 <style>
 body, html {height: 100%;}

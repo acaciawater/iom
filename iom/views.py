@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from .models import Waarnemer, Meetpunt, CartoDb
-
+from acacia.data.models import Project
 import json
 import pandas as pd
 import locale
@@ -83,6 +83,7 @@ class HomeView(ContextMixin,TemplateView):
                             })
         waarnemers = list(Waarnemer.objects.all())
         waarnemers.sort(key = lambda x: -x.aantal_waarnemingen())
+        context['project'] = Project.objects.get(pk=1)
         context['waarnemers'] = waarnemers
         context['meetpunten'] = meetpunten
         context['content'] = json.dumps(content)
@@ -96,6 +97,7 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
+        context['project'] = Project.objects.get(pk=1)
         context['meetpunten'] = waarnemer.meetpunt_set.all()
         return context
 
@@ -107,6 +109,7 @@ class MeetpuntDetailView(ContextMixin,DetailView):
         context = super(MeetpuntDetailView, self).get_context_data(**kwargs)
         meetpunt = self.get_object();
         latlon = meetpunt.latlon()
+        context['project'] = Project.objects.get(pk=1)
         context['location'] = latlon
         return context
     
