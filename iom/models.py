@@ -163,8 +163,7 @@ class Meetpunt(MeetLocatie):
     photo.allow_tags=True
 
     def get_events(self):
-        series = self.get_series()
-        return [e for e in series.event_set.all()] if series else 0
+        return [e for e in s.event_set.all() for s in self.series()]
         
 class Waarneming(models.Model):
     naam = models.CharField(max_length=100)
