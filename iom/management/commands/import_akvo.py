@@ -66,8 +66,8 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
     surveyId = akvo.regform
     meetpunten=set()
     num_meetpunten = 0
-    
-    beginDate=as_timestamp(akvo.last_update)
+    update = akvo.last_update + datetime.timedelta(days=-1)
+    beginDate=as_timestamp(update)
     instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
 #    instances = api.get_registration_instances(surveyId).items()
     for key,instance in instances:
@@ -163,7 +163,8 @@ def importAkvoMonitoring(api,akvo):
     num_waarnemingen = 0
     num_replaced = 0
 
-    beginDate = as_timestamp(akvo.last_update)
+    update = akvo.last_update + datetime.timedelta(days=-1)
+    beginDate=as_timestamp(update)
     for surveyId in [f.strip() for f in akvo.monforms.split(',')]:
         survey = api.get_survey(surveyId)
         instances,meta = api.get_survey_instances(surveyId=surveyId,beginDate=beginDate)
