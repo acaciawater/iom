@@ -62,6 +62,7 @@ class ContextMixin(object):
         context = super(ContextMixin, self).get_context_data(**kwargs)
         context['cartodb'] = get_object_or_404(CartoDb, pk=settings.CARTODB_ID)
         context['akvo'] = get_object_or_404(AkvoFlow, pk=settings.AKVOFLOW_ID)
+        context['project'] = get_object_or_404(Project,pk=1)
         w = Waarneming.objects.all().order_by('-datum')
         context['laatste'] = w[0] if w else None
         return context
@@ -83,7 +84,6 @@ class HomeView(ContextMixin,TemplateView):
                             })
         waarnemers = list(Waarnemer.objects.all())
         waarnemers.sort(key = lambda x: -x.aantal_waarnemingen())
-        context['project'] = Project.objects.get(pk=1)
         context['waarnemers'] = waarnemers
         context['meetpunten'] = meetpunten
         context['content'] = json.dumps(content)
@@ -97,7 +97,6 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
-        context['project'] = Project.objects.get(pk=1)
         context['meetpunten'] = waarnemer.meetpunt_set.all()
         return context
 
@@ -109,7 +108,6 @@ class MeetpuntDetailView(ContextMixin,DetailView):
         context = super(MeetpuntDetailView, self).get_context_data(**kwargs)
         meetpunt = self.get_object();
         latlon = meetpunt.latlon()
-        context['project'] = Project.objects.get(pk=1)
         context['location'] = latlon
         return context
     
