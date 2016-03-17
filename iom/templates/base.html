@@ -21,6 +21,9 @@
 		.credit {font-size: 90%; }
 		.barbut { height: 20px; margin-top: 4px; }
 		.akvo { height: 16px; margin-top: 6px; }
+		li > a > img {
+			height: 20px;
+		}
     </style>
 	{% endblock %}
 	{% block extrastyle %}{% endblock extrastyle %}
@@ -55,6 +58,9 @@
 	      {% block navbar-auth %}
 	      {% block navbar-right %}
 	      <ul class="nav navbar-nav navbar-right">
+	        <li><a href="http://www.acaciawater.com"><img src="{% static "img/acaciawater.png" %}"/></a></li>
+	        <li><a href="http://www.sodaq.com"><img src="{% static "img/sodaq.png" %}"/></a></li>
+	        <li><a href="http://www.akvo.org"><img src="{% static "img/akvo.png" %}"/></a></li>
 	        {% if user.is_authenticated %}
 	        <li class="dropdown">
 	          <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}
@@ -68,16 +74,6 @@
           	{% else %}
 	        <li><a href="/accounts/login">Inloggen</a></li>
           	{% endif %}
-          	{% if akvo.instance %}
-	        <li class="dropdown">
-	          <a class="dropdown-toggle" data-toggle="dropdown" href="#"><img class="navbar-brand akvo" src="{% static "img/akvoFlowLogo.svg" %}"></img>
-	          <b class="caret"></b></a>
-	          <ul class="dropdown-menu">
-	            <li><a href="{{akvo.instance}}" title="Ga naar het Acacia dashboard op Akvoflow">Website</a></li>
-	            <li><a href="/akvo?next=/home" title="Nieuwe meetwaarden ophalen" >Acualiseren</a></li>
-	          </ul>
-			</li>
-			{% endif %}
 	      </ul>
 		  {% endblock navbar-right %}
 	      {% endblock navbar-auth %}

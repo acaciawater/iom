@@ -48,8 +48,11 @@ coverage.xml
 *.pot
 
 # Django stuff:
+.*
+*.gz
+*.py~
 *.log
-static/
+#static/
 media/
 
 # Sphinx documentation
