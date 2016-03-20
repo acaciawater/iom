@@ -37,25 +37,6 @@ def WaarnemingenToDict(request, pk):
     j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
     return HttpResponse(j, content_type='application/json')
 
-def WaarnemingenToDict1(request, pk):
-    tz = timezone.get_current_timezone()
-    locale.setlocale(locale.LC_ALL,'nl_NL.utf8')
-    
-    mp = get_object_or_404(Meetpunt,pk=pk)
-    ec = mp.get_series('EC').to_pandas()
-    temp = mp.get_series('Temp').to_pandas()
-    df = pd.DataFrame([ec,temp])
-
-    # bootstrap data table does not like NaN values
-    df.fillna('', inplace=True)
-    
-    data = df.to_dict()
-    #dct = [{'date': k.astimezone(tz).strftime('%c'), 'EC': v[ec.name], 'Temp': v[temp.name]} for (k, v) in data.iteritems()]
-    dct = [{'date': k, 'EC': v[ec.name], 'Temp': v[temp.name]} for (k, v) in data.iteritems()]
-    dct.sort(key=lambda x: x['date'])
-    j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
-    return HttpResponse(j, content_type='application/json')
-
 class ContextMixin(object):
     ''' adds cartodb and akvo config to context '''
     def get_context_data(self, **kwargs):
