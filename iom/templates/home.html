@@ -30,6 +30,13 @@ body, html {height: 100%;}
 .laatste {
 	float:right;
 }
+.legend {
+	position: absolute;
+	bottom: 32px;
+	right: 12px;
+	z-index: 100;
+	width: 243px;
+}
 </style>
 {% endblock extrastyle %}
 {% block script %}
@@ -52,9 +59,9 @@ window.onload = function() {
 {% endblock %}
 {% block content %}
 <div class = "container-fluid fullheight">
-<div class = "row-fluid fullheight">
+<div class = "row fullheight">
 <div class = "col-md-9 fullheight">
- <div class= "row fullheight"><div class="col-md-12 fullheight"><div id="map"></div></div></div>
+ <div class= "row fullheight"><div class="col-md-12 fullheight"><div id="map"><img class="legend" src="{% static "img/legenda1.png" %}"></img></div></div></div>
  {% if laatste %}
  <div class= "row"><div class="col-md-12">
  <div class="update text-muted"><small>Geactualiseerd op {{akvo.last_update}}. Laatste waarneming door {{laatste.waarnemer}} op {{laatste.datum}}</small></div>
