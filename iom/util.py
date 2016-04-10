@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Sep 4, 2015
 
@@ -102,20 +103,20 @@ def maak_meetpunt_grafiek(meetpunt,user):
     
     maak_meetpunt_thumbnail(meetpunt)
     
-    
 def updateSeries(mps, user):    
     '''update timeseries using meetpunten from  mps'''
     allseries = set()
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'uS/cm'})
+            waarde = w.waarde# / 1000.0 # micro Siemens/cm to dS/m
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'µS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=mp.displayname))  
-            dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': w.waarde})
+            dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
             updated = created
-            if not created and dp.value != w.waarde:
-                dp.value=w.waarde
+            if not created and dp.value != waarde:
+                dp.value=waarde
                 dp.save(update_fields=['value'])
                 updated = True
                 logger.debug('{name}, {date}, EC={ec}'.format(name=series, date=dp.date, ec=dp.value))
@@ -154,7 +155,7 @@ def updateCartodb(cartodb, mps):
             last = waarnemingen[0]
             ec = last.waarde
             date = last.datum
-            diep = "'ondiep'" if last.naam.endswith('ndiep') else "'diep'"
+            diep = "'ondiep'" if last.naam.endswith('ndiep') else "'diep'" if last.naam.endswith('diep') else "''"
         else:
             ec = None
             date = None
@@ -165,6 +166,7 @@ def updateCartodb(cartodb, mps):
         else:
             date = time.mktime(date.timetuple())
 
+        #ec = ec / 1000.0 # Micro Siemens to milli Siemens
         url = m.chart_thumbnail.name
         url = 'NULL' if url is None else "'{url}'".format(url=url)
         s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=escape(m.name),waarnemer=unicode(m.waarnemer),ec=ec,date=date)
@@ -186,7 +188,7 @@ def exportCartodb(cartodb, mps, table):
         waarnemingen = m.waarneming_set.all().order_by('datum')
         values = ''
         for w in waarnemingen:
-            ec = w.waarde
+            ec = w.waarde# / 1000.0 # Micro Siemens to milli Siemens
             date = w.datum
             if w.naam.find('_'):
                 words = w.naam.split('_')
@@ -197,14 +199,15 @@ def exportCartodb(cartodb, mps, table):
             date = time.mktime(date.timetuple())
             url = m.chart_thumbnail.name
             url = 'NULL' if url is None else "'{url}'".format(url=url)
-            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=m.name,waarnemer=unicode(m.waarnemer),ec=ec,date=date)
+            meetpunt = m.name.replace("'", "''")
+            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date)
             if values:
                 values += ','
             values += s
             
         if values:
             logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
-            sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=m.name)
+            sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
             cartodb.runsql(sql)
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
