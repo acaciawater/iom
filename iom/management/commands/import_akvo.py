@@ -149,7 +149,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
                 logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                 meetpunten.add(meetpunt)
     
-            elif int(waarneming.waarde) != int(ec):
+            elif waarneming.waarde != ec:
                 waarneming.waarde = ec
                 waarneming.save()
                 meetpunten.add(meetpunt)
@@ -205,7 +205,7 @@ def importAkvoMonitoring(api,akvo):
                     logger.info('{locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_waarnemingen += 1
                     meetpunten.add(meetpunt)
-                elif int(waarneming.waarde) != int(ec):
+                elif waarneming.waarde != ec:
                     waarneming.waarde = ec
                     waarneming.save()
                     logger.info('{locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
@@ -261,8 +261,8 @@ class Command(BaseCommand):
                 util.updateSeries(mp, user)
                 logger.debug('Cartodb actualiseren')
                 util.updateCartodb(cartodb, mp)
-                logger.debug('Triggers evalueren')
-                util.processTriggers(mp)
+                #logger.debug('Triggers evalueren')
+                #util.processTriggers(mp)
             
             akvo.last_update = timezone.now()
             akvo.save()        
