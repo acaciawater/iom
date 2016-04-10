@@ -65,7 +65,9 @@ class HomeView(ContextMixin,TemplateView):
                             })
         waarnemers = list(Waarnemer.objects.all())
         waarnemers.sort(key = lambda x: -x.aantal_waarnemingen())
+        actief = [w for w in waarnemers if w.waarneming_set]
         context['waarnemers'] = waarnemers
+        context['actief'] = actief
         context['meetpunten'] = meetpunten
         context['content'] = json.dumps(content)
         context['maptype'] = 'ROADMAP'
