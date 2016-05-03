@@ -160,7 +160,7 @@ class FlowAPI:
         '''
         url = self.format_url('survey_instances',**kwargs)
         response = self.get_response(url)
-        return (response['survey_instances'],response['meta'])
+        return (response.get('survey_instances',[]),response.get('meta',[]))
 
     def get_registration_instances(self, surveyId, key='surveyedLocaleIdentifier', beginDate=None, endDate = None):
         '''Retrieve dict of survey instances, indexed by key for use as lookup table'''
