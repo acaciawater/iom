@@ -259,8 +259,8 @@ class Command(BaseCommand):
             if mp:
                 logger.debug('Grafieken aanpassen')
                 util.updateSeries(mp, user)
-                logger.debug('Cartodb actualiseren')
-                util.updateCartodb(cartodb, mp)
+                #logger.debug('Cartodb actualiseren')
+                util.updateCartodb(cartodb, mps)
                 #logger.debug('Triggers evalueren')
                 #util.processTriggers(mp)
             
