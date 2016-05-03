@@ -17,7 +17,7 @@ from django.contrib.auth.models import User
 from .util import maak_meetpunt_grafiek, zoek_tijdreeksen
 
 import re
-from iom.models import Waarneming, Alias
+from iom.models import Waarneming, Alias, Logo
 from iom import util
 
 class UserProfileInline(admin.StackedInline):
@@ -165,3 +165,7 @@ class CartodbAdmin(admin.ModelAdmin):
 class WaarnemingAdmin(admin.ModelAdmin):
     list_display = ('naam', 'datum', 'waarnemer', 'locatie', 'device','waarde', 'eenheid', 'photo')
     list_filter = ('naam', 'waarnemer', 'locatie', 'device', 'datum' )
+    
+@admin.register(Logo)
+class LogoAdmin(admin.ModelAdmin):
+    list_display = ('name','order','img')

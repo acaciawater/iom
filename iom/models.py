@@ -141,7 +141,7 @@ class Meetpunt(MeetLocatie):
         p = self.latlon()
         return [p.y,p.x]
     
-    class Meta:
+    class Meta:        
         verbose_name_plural = 'Meetpunten'
                 
     def get_series(self, name='EC'):
@@ -233,4 +233,21 @@ class Phone(models.Model):
     latitude = models.FloatField(null=True)
     longitude = models.FloatField(null=True)
     accuracy = models.IntegerField(null=True)
-    
+
+class Logo(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank = True)
+    logo = models.ImageField(upload_to='logos',blank= True, null=True)
+    order = models.IntegerField(default=1)
+    website = models.URLField(null=True,blank=True)
+    display = models.BooleanField(default=True)
+
+    def img(self):
+        return '<a href="{url}"><img src="{img}" height="60px"/></a>'.format(url=self.logo.url, img=self.logo.url)
+    img.allow_tags = True
+        
+    def __unicode__(self):
+        return self.name
+    class Meta:
+        ordering = ('order',)
+        

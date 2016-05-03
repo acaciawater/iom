@@ -15,7 +15,7 @@ from acacia.data.models import Project
 import json
 import pandas as pd
 import locale
-from iom.models import AkvoFlow, Waarneming
+from iom.models import AkvoFlow, Waarneming, Logo
 
 def WaarnemingenToDict(request, pk):
     tz = timezone.get_current_timezone()
@@ -44,6 +44,7 @@ class ContextMixin(object):
         context['cartodb'] = get_object_or_404(CartoDb, pk=settings.CARTODB_ID)
         context['akvo'] = get_object_or_404(AkvoFlow, pk=settings.AKVOFLOW_ID)
         context['project'] = get_object_or_404(Project,pk=1)
+        context['logos'] = Logo.objects.all()
         w = Waarneming.objects.all().order_by('-datum')
         context['laatste'] = w[0] if w else None
         return context
