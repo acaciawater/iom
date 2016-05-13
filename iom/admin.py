@@ -17,7 +17,7 @@ from django.contrib.auth.models import User
 from .util import maak_meetpunt_grafiek, zoek_tijdreeksen
 
 import re
-from iom.models import Waarneming, Alias, Logo
+from iom.models import Waarneming, Alias, Logo, RegisteredUser
 from iom import util
 
 class UserProfileInline(admin.StackedInline):
@@ -169,3 +169,18 @@ class WaarnemingAdmin(admin.ModelAdmin):
 @admin.register(Logo)
 class LogoAdmin(admin.ModelAdmin):
     list_display = ('name','order','img')
+
+@admin.register(RegisteredUser)
+class RegisteredUserAdmin(admin.ModelAdmin):
+    exclude = ('website', 'status', 'organisatie')
+    fieldsets = (
+                  ('Persoonsgegevens', {'fields': (('voornaam', 'tussenvoegsel', 'achternaam'),('email', 'telefoon')),
+                        'classes': ('grp-collapse grp-open',),
+                       }
+                  ),
+                  ('Telefoon', {'fields': ('akvo_name', 'device_id',),
+                        'classes': ('grp-collapse grp-open',),
+                       }
+                  ),
+                )
+    
