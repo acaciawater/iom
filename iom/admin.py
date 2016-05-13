@@ -14,7 +14,7 @@ from acacia.data.events.models import Event
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .util import maak_meetpunt_grafiek, zoek_tijdreeksen
+from .util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb2
 
 import re
 from iom.models import Waarneming, Alias, Logo, RegisteredUser
@@ -70,6 +70,10 @@ def update_cdb_waarnemers(modeladmin, request, queryset):
     util.updateSeries(mps, request.user)
     util.updateCartodb(CartoDb.objects.get(pk=1), mps)
 update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren voor meetpunten van geselecteerde waarnemers'
+
+def export_cdb_waarnemingen(modeladmin, request, queryset):
+    util.exportCartodb2(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+export_cdb_waarnemingen.short_description = 'waarnemingen exporteren naar cartodb'
 
 class EventInline(admin.TabularInline):
     model = Event
@@ -165,7 +169,8 @@ class CartodbAdmin(admin.ModelAdmin):
 class WaarnemingAdmin(admin.ModelAdmin):
     list_display = ('naam', 'datum', 'waarnemer', 'locatie', 'device','waarde', 'eenheid', 'photo')
     list_filter = ('naam', 'waarnemer', 'locatie', 'device', 'datum' )
-    
+    actions = [export_cdb_waarnemingen,]
+
 @admin.register(Logo)
 class LogoAdmin(admin.ModelAdmin):
     list_display = ('name','order','img')

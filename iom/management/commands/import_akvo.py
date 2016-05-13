@@ -65,6 +65,7 @@ def download_photo(url):
 def importAkvoRegistration(api,akvo,projectlocatie,user):
     surveyId = akvo.regform
     meetpunten=set()
+    waarnemingen=set()
     num_meetpunten = 0
     update = akvo.last_update + datetime.timedelta(days=-1)
     beginDate=as_timestamp(update)
@@ -147,19 +148,22 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
     
             if created:
                 logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+                waarnemingen.add(waarneming)
                 meetpunten.add(meetpunt)
     
-            elif waarneming.waarde != ec:
+            else:#if waarneming.waarde != ec:
                 waarneming.waarde = ec
                 waarneming.save()
+                waarnemingen.add(waarneming)
                 meetpunten.add(meetpunt)
         
     logger.info('Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
 
-    return meetpunten
+    return meetpunten, waarnemingen
    
 def importAkvoMonitoring(api,akvo):
     meetpunten = set()
+    waarnemingen = set()
     num_waarnemingen = 0
     num_replaced = 0
 
@@ -204,16 +208,18 @@ def importAkvoMonitoring(api,akvo):
                 if created:
                     logger.info('{locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_waarnemingen += 1
+                    waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
-                elif waarneming.waarde != ec:
+                else:#if waarneming.waarde != ec:
                     waarneming.waarde = ec
                     waarneming.save()
                     logger.info('{locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_replaced += 1
+                    waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
             instances,meta = api.get_survey_instances(surveyId=surveyId, beginDate=beginDate, since=meta['since'])
     logger.info('Aantal nieuwe metingen: {meet}, bijgewerkt: {repl}'.format(meet=num_waarnemingen,repl=num_replaced))
-    return meetpunten
+    return meetpunten, waarnemingen
 
 class Command(BaseCommand):
     args = ''
@@ -252,17 +258,21 @@ class Command(BaseCommand):
 
         try:
             logger.debug('Meetpuntgegevens ophalen')
-            mp = importAkvoRegistration(api, akvo, projectlocatie=project,user=user)
+            m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=project,user=user)
             logger.debug('Waarnemingen ophalen')
-            mp.update(importAkvoMonitoring(api, akvo))
-            
+            m2,w2=importAkvoMonitoring(api, akvo)
+            mp = m1|m2
+            wn = w1|w2
             if mp:
                 logger.debug('Grafieken aanpassen')
                 util.updateSeries(mp, user)
                 #logger.debug('Cartodb actualiseren')
-                util.updateCartodb(cartodb, mps)
-                #logger.debug('Triggers evalueren')
-                #util.processTriggers(mp)
+                #util.updateCartodb(cartodb, mps)
+            if wn:
+                #logger.debug('Cartodb actualiseren')
+                util.exportCartodb2(cartodb, wn, 'allemetingen')
+            #logger.debug('Triggers evalueren')
+            #util.processTriggers(mp)
             
             akvo.last_update = timezone.now()
             akvo.save()        

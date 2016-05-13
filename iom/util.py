@@ -104,7 +104,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
     maak_meetpunt_thumbnail(meetpunt)
     
 def updateSeries(mps, user):    
-    '''update timeseries using meetpunten from  mps'''
+    '''update timeseries using meetpunten in  mps'''
     allseries = set()
     for mp in mps:
         loc = mp.projectlocatie
@@ -166,7 +166,6 @@ def updateCartodb(cartodb, mps):
         else:
             date = time.mktime(date.timetuple())
 
-        #ec = ec / 1000.0 # Micro Siemens to milli Siemens
         url = m.chart_thumbnail.name
         url = 'NULL' if url is None else "'{url}'".format(url=url)
         s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=escape(m.name),waarnemer=unicode(m.waarnemer),ec=ec,date=date)
@@ -179,6 +178,7 @@ def updateCartodb(cartodb, mps):
         sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) '.format(table=cartodb.datatable) + values
         cartodb.runsql(sql)
 
+# this version replaces ALL measurements of a meetpunt
 def exportCartodb(cartodb, mps, table):
 
     for m in mps:
@@ -210,6 +210,47 @@ def exportCartodb(cartodb, mps, table):
         if values:
             logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
+            cartodb.runsql(sql)
+            sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
+            cartodb.runsql(sql)
+
+from itertools import groupby
+# this version replaces only selected measurements
+def exportCartodb2(cartodb, waarnemingen, table):
+    # group waarnemingen by meetpunt
+    group = groupby(waarnemingen,lambda w: w.locatie)
+    for m,waarnemingen in group:
+        print m
+        project = m.project()
+        regio = project.name
+        p = m.location
+        p.transform(4326)
+        values = ''
+        dates = []
+        meetpunt = m.name.replace("'", "''")
+        for w in waarnemingen:
+            ec = w.waarde
+            date = w.datum
+            if w.naam.find('_'):
+                words = w.naam.split('_')
+                diep = "'"+words[-1]+"'"
+            else:
+                diep = 'NULL'
+            
+            date = time.mktime(date.timetuple())
+            url = m.chart_thumbnail.name
+            url = 'NULL' if url is None else "'{url}'".format(url=url)
+            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date,regio=regio)
+            if values:
+                values += ','
+            values += s
+            dates.append(time.mktime(w.datum.timetuple()))
+            
+        if values:
+            logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+            datums = ','.join(['to_timestamp({})'.format(d) for d in dates])
+            # delete all waarnemingen with matching meetpunt, waarnemer and date
+            sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}' AND datum in ({dates})".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt, dates=datums)
             cartodb.runsql(sql)
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
