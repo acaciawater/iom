@@ -223,8 +223,12 @@ class CartoDb(models.Model):
     def runsql(self,sql):
         data = urllib.urlencode({'q': sql, 'api_key': self.key})
         request = urllib2.Request(url=self.sql_url, data=data)
-        return urllib2.urlopen(request)
-
+        for i in range(3):
+            try:
+                return urllib2.urlopen(request)
+            except urllib2.URLError as e:
+                print e
+            
 class Phone(models.Model):
     imei = models.CharField(max_length=20)
     phone_number = models.CharField(max_length=20)
@@ -250,4 +254,18 @@ class Logo(models.Model):
         return self.name
     class Meta:
         ordering = ('order',)
-        
+
+STATUS_CHOICES = (
+                  ('O', 'geopend'),
+                  ('V', 'aangevraagd'),
+                  ('P', 'in behandeling'),
+                  ('E', 'fout geconstateerd'),
+                  ('R', 'geweigerd'),
+                  ('A', 'geaccepteerd')
+                  )
+class RegisteredUser(Waarnemer):
+    ''' user that is to be registered by an administrator '''
+    website = models.CharField(max_length=100)
+    akvo_name = models.CharField(max_length=100)
+    device_id = models.CharField(max_length=100)
+    status = models.CharField(max_length=1,choices = STATUS_CHOICES)
