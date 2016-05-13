@@ -109,8 +109,8 @@ def updateSeries(mps, user):
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
-            waarde = w.waarde# / 1000.0 # micro Siemens/cm to dS/m
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'µS/cm'})
+            waarde = w.waarde
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'mS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=mp.displayname))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
@@ -183,6 +183,8 @@ def exportCartodb(cartodb, mps, table):
 
     for m in mps:
         print m
+        project = m.project()
+        regio = project.name
         p = m.location
         p.transform(4326)
         waarnemingen = m.waarneming_set.all().order_by('datum')
@@ -200,7 +202,7 @@ def exportCartodb(cartodb, mps, table):
             url = m.chart_thumbnail.name
             url = 'NULL' if url is None else "'{url}'".format(url=url)
             meetpunt = m.name.replace("'", "''")
-            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date)
+            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date,regio=regio)
             if values:
                 values += ','
             values += s
@@ -209,37 +211,9 @@ def exportCartodb(cartodb, mps, table):
             logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
             cartodb.runsql(sql)
-            sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) VALUES '.format(table=table) + values
+            sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
-        
-# def processTriggers(mps):
-#     
-#     from itertools import groupby
-# 
-#     # group events by target
-#     key = lambda e:e.target
-#     events = sorted([e for e in mp.get_events() for mp in mps],key=key)
-#     eventgroups = groupby(events,key=key)
-# 
-#     for target,events in eventgroups.items():
-#         for e in events:
-#             history = e.history_set.filter(sent=True).order_by('-date')
-#             start = history[0].date if history else None
-#             data = e.trigger.select(start=start)
-#             num = data.count()
-#             if num > 0:
-#                 with Messenger(e) as m:
-#                     # add message for every event
-#                     for date,value in data.iteritems():
-#                         if start and date <= start:
-#                             # dont send message twice
-#                             continue
-#                         m.add(e.format_message(date,value,html=True))
-#                     msg = 'Event {name} was triggered {count} times for {ser} since {date}'.format(name=e.trigger.name, count=num, ser=series,date=start)
-#             else:
-#                 msg = 'No alarms triggered for trigger {name} since {date}'.format(date=start, name=t.name)
-#             logger.debug(msg)
-
+            
 def processTriggers(mps):
     
     for mp in mps:
