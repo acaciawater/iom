@@ -12,7 +12,13 @@ body, html {height: 100%;}
 .fullwidth {width: 100%;}
 .wrapper {height: 100%;}
 .scroll {overflow-x: hidden; overflow-y: auto;}
-#map {width: 100%; height: 100%; padding-bottom: 16px;}
+#map {width: 100%; height: 100%; padding-bottom: 20px;}
+.vcenter {
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: 8px;
+    float: none;
+}
 .chart-ec {
 	width: 380px;
 	height: 120px;
@@ -25,25 +31,44 @@ body, html {height: 100%;}
 	padding-right: 12px;
 }
 .update {
- 	margin-top: -12px;
+ 	margin-top: -20px;
 }
 .laatste {
 	float:right;
 }
+
 .legend {
 	position: absolute;
-	bottom: 32px;
-	right: 12px;
-	z-index: 100;
-	width: 120px;
+	top: 56px;
+	right: 32px;
+	height: 40px;
+	padding: 2px;
 }
-.legend2 {
-	position: absolute;
-	bottom: -4px;
-	right: 12px;
-	z-index: 100;
-	height: 32px;
+
+#datepicker {
+    cursor: pointer;
+    padding: 5px 10px;
+	position:absolute;
+	right: 196px;
+	top: 0px;
+	display:none;
+	margin:19px 0 0 20px;
+	height: 30px;
+	color: #999;
+	font-size: small;
+	-webkit-box-shadow:rgba(0,0,0,.2) 0 0 4px 2px;
+	-moz-box-shadow:rgba(0,0,0,.2) 0 0 4px 2px;
+	box-shadow:rgba(0,0,0,.2) 0 0 4px 2px;
+	background:#fff;
+	-webkit-border-radius:4px;
+	-moz-border-radius:4px;
+	-ms-border-radius:4px;
+	-o-border-radius:4px;
+	border-radius:4px;
+	border:1px solid #999;
+	z-index:105
 }
+
 </style>
 {% endblock extrastyle %}
 {% block script %}
@@ -56,11 +81,69 @@ window.onload = function() {
   cartodb.createVis('map', '{{cartodb.viz}}')
   	.done(function(vis, layers) {
   		theMap = vis.getNativeMap();
-  		{% block createdone %}	  		
-  		{% endblock createdone %}	  		
+  		{% block createdone %}
+  		var sub = layers[1].getSubLayer(0);
+{%if cartodb.layer_sql %}
+	var sub = layers[1].getSubLayer(0);
+	var sql = "{{cartodb.sql}}";
+	sub.setSQL(sql);
+{% endif %}
+		{% endblock createdone %}
+  		// show date picker
+  		var e = document.getElementById("datepicker");
+  		e.style.display = 'block';
   	});
     $("#list").height($("#map").height());
 }
+</script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+<script type="text/javascript">
+$(function() {
+	function requery(sql) {
+		var layer = theMap.layer[1];
+		var sub = layer.getSubLayer(0);
+		sub.setSQL(sql);
+	}
+
+function apply(start, end) {
+      $('#datepicker span').html(start.format('D MMMM, YYYY') + ' - ' + end.format('D MMMM, YYYY'));
+    }
+
+	moment.locale('nl-NL');
+
+    $('#datepicker').daterangepicker({
+    	"applyClass": "btn-primary",
+    	"locale": {
+            "format": "D MMM YYYY",
+            "separator": " - ",
+            "applyLabel": "Ok",
+            "cancelLabel": "Filter verwijderen",
+            "fromLabel": "Van",
+            "toLabel": "Tot",
+            "customRangeLabel": "Handmatig",
+            "daysOfWeek": ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"],
+            "monthNamesShort": ["Jan", "Feb", "Mrt", "Apr", "Mei", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"],
+            "monthNames": ["Januari", "Februari", "Maart", "April", "Mei", "Juni", "Juli", "Augustus", "September", "Oktober", "November", "December"],
+            "firstDay": 1
+        },
+        ranges: {
+           'Vandaag': [moment(), moment()],
+           'Gisteren': [moment().subtract(1, 'days'), moment()],
+           'Week': [moment().subtract(6, 'days'), moment()],
+           'Maand': [moment().subtract(1, 'month'), moment()],
+           'Deze maand': [moment().startOf('month'), moment()],
+           'Vorige maand': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    }, apply);
+    
+    $('#datepicker').on('cancel.daterangepicker', function(ev, picker) {
+    	// clear range and requery
+        $('#datepicker span').html('');
+    });
+});
+
 </script>
 {% endlocalize %}
 {% endblock %}
@@ -68,14 +151,17 @@ window.onload = function() {
 <div class = "container-fluid fullheight">
 <div class = "row fullheight">
 <div class = "col-md-9 fullheight">
- <div class= "row fullheight"><div class="col-md-12 fullheight"><div id="map"></div></div></div>
- {% if laatste %}
- <div class= "row"><div class="col-md-12">
- <div class="update text-muted"><small>Geactualiseerd op {{akvo.last_update}}. Laatste waarneming door {{laatste.waarnemer}} op {{laatste.datum}}</small></div>
-<img class="legend2" src="{% static "img/legenda2.png" %}"></img>
+<div class= "row fullheight"><div class="col-md-12 fullheight"><div id="map"></div>
+<div id="datepicker" title="filter op datum" class = "pull-right"><i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;<span></span></div>
+<img class="legend" src="{% static "img/legenda3.png" %}"></img>
+</div></div>
+{% if laatste %}
+<div class= "row">
+<div class="col-md-12">
+<div class="update text-muted"><small>Geactualiseerd op {{akvo.last_update}}. Laatste waarneming door <a href="{% url 'waarnemer-detail' laatste.waarnemer.id %}">{{laatste.waarnemer}}</a> op {{laatste.datum}}</small></div>
 </div>
- </div>
- {% endif %}
+</div>
+{% endif %}
 </div>
 <div class = "col-md-3">
 {% block list %}
