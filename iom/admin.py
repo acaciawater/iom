@@ -14,7 +14,7 @@ from acacia.data.events.models import Event
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb2
+from .util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb, exportCartodb2
 
 import re
 from iom.models import Waarneming, Alias, Logo, RegisteredUser
@@ -73,7 +73,11 @@ update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren v
 
 def export_cdb_waarnemingen(modeladmin, request, queryset):
     util.exportCartodb2(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
-export_cdb_waarnemingen.short_description = 'waarnemingen exporteren naar cartodb'
+export_cdb_waarnemingen.short_description = 'geselecteerde waarnemingen exporteren naar cartodb'
+
+def export_cdb_meetpunten(modeladmin, request, queryset):
+    util.exportCartodb(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+export_cdb_meetpunten.short_description = 'geselecteerde meetpunten exporteren naar cartodb'
 
 class EventInline(admin.TabularInline):
     model = Event
@@ -99,7 +103,7 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 @admin.register(Meetpunt)
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
-    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series]
+    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten]
     list_display = ('name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', )
     inlines = [WaarnemingInline,]
