@@ -25,6 +25,7 @@
 		li > a > img {height: 16px;}
 		.logo {height: 44px; padding: 2px 2px 2px 8px;}
 		.time {float: left; height: 44px; padding: 2px 2px 2px 2px;}
+		.calendar {height: 24px;}
 
     </style>
 	
@@ -53,7 +54,6 @@
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 		  {% block brandname %}
 		    <div class="navbar-brand">
-<!-- 		  	<a href="/home">{{project|default:"Inlaat op Maat"}}</a> -->
                 {% for logo in logos %}<a href="{{logo.website}}"><img class="logo" src="/media/{{logo.logo}}"></a>{% endfor %}
 		  	</div>{% endblock %}
 		  	
@@ -98,11 +98,6 @@
     			{% block footer-text %}
 	            <p class="text-muted text-center credit"><a href="http://www.acaciawater.com">Acacia Water</a> • van Hogendorpplein 4 • 2805 BM Gouda • The Netherlands • Tel: +31 (0)182 - 686424 • Mail: <a href="mailto:info@acaciawater.com">info@acaciawater.com</a>.</p>
     			{% endblock footer-text %}
-<!-- 					<a href="time" title="Filter op tijd"><img class="time" src="{% static "img/time.png" %}"></a>  -->
-<!--  	            	<div class="text-muted text-left credit"><a href="http://www.acaciawater.com">Acacia Water</a> • van Hogendorpplein 4 • 2805 BM Gouda • The Netherlands • Tel: +31 (0)182 - 686424 • Mail: <a href="mailto:info@acaciawater.com">info@acaciawater.com</a> -->
-<!--  	            	<p class="text-muted text-right credit"> -->
-<!-- 	                {% for logo in logos %}<a href="{{logo.website}}"><img class="logo" src="/media/{{logo.logo}}"></a>{% endfor %} -->
-<!-- 					</p> -->
 	        </div>
 	    </nav>
 	</div>
