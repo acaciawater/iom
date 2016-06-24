@@ -234,8 +234,9 @@ class FlowAPI:
     
     def get_answer(self, answers, **kwargs):
         key,value = kwargs.popitem()
+        value = value.strip()
         for a in answers:
-            if a[key] == value:
+            if a[key].strip() == value:
                 return self.format_value(a)
         return None
     
