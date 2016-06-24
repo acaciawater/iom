@@ -178,6 +178,8 @@ def updateCartodb(cartodb, mps):
         sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,datum,ec) '.format(table=cartodb.datatable) + values
         cartodb.runsql(sql)
 
+from itertools import groupby
+
 # this version replaces ALL measurements of a meetpunt
 def exportCartodb(cartodb, mps, table):
 
@@ -188,33 +190,41 @@ def exportCartodb(cartodb, mps, table):
         p = m.location
         p.transform(4326)
         waarnemingen = m.waarneming_set.all().order_by('datum')
-        values = ''
-        for w in waarnemingen:
-            ec = w.waarde# / 1000.0 # Micro Siemens to milli Siemens
-            date = w.datum
-            if w.naam.find('_'):
-                words = w.naam.split('_')
-                diep = "'"+words[-1]+"'"
-            else:
-                diep = 'NULL'
-            
-            date = time.mktime(date.timetuple())
-            url = m.chart_thumbnail.name
-            url = 'NULL' if url is None else "'{url}'".format(url=url)
-            meetpunt = m.name.replace("'", "''")
-            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date,regio=regio)
+        # group waarnemingen by name (diep/ondiep, ...)
+        group = groupby(waarnemingen,lambda w: w.naam)
+        for soort,waarnemingen in group:
+            values = ''
+            ec2 = None
+            wnid = 0
+            for w in waarnemingen:
+                wnid += 1
+                ec1 = ec2
+                ec2 = w.waarde# / 1000.0 # Micro Siemens to milli Siemens
+                delta = ec2-ec1 if ec1 and ec2 else 0
+                date = w.datum
+                if w.naam.find('_'):
+                    words = w.naam.split('_')
+                    diep = "'"+words[-1]+"'"
+                else:
+                    diep = 'NULL'
+                
+                date = time.mktime(date.timetuple())
+                url = m.chart_thumbnail.name
+                url = 'NULL' if url is None else "'{url}'".format(url=url)
+                meetpunt = m.name.replace("'", "''")
+                s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', {wnid}, to_timestamp({date}), {ec}, {delta})"\
+                    .format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),wnid=wnid,ec=ec2,delta=delta,date=date,regio=regio)
+                if values:
+                    values += ','
+                values += s
+                
             if values:
-                values += ','
-            values += s
-            
-        if values:
-            logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
-            sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
-            cartodb.runsql(sql)
-            sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
-            cartodb.runsql(sql)
+                logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+                sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
+                cartodb.runsql(sql)
+                sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,wnid,datum,ec,ec_toename) VALUES '.format(table=table) + values
+                cartodb.runsql(sql)
 
-from itertools import groupby
 # this version replaces only selected measurements
 def exportCartodb2(cartodb, waarnemingen, table):
     # group waarnemingen by meetpunt
@@ -240,7 +250,8 @@ def exportCartodb2(cartodb, waarnemingen, table):
             date = time.mktime(date.timetuple())
             url = m.chart_thumbnail.name
             url = 'NULL' if url is None else "'{url}'".format(url=url)
-            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', to_timestamp({date}), {ec})".format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date,regio=regio)
+            s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', to_timestamp({date}), {ec})" \
+                .format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),ec=ec,date=date,regio=regio)
             if values:
                 values += ','
             values += s
