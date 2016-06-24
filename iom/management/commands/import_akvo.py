@@ -202,9 +202,14 @@ def importAkvoMonitoring(api,akvo):
                     # update meetpunt along the way..
                     meetpunt.photo_url = foto
                     meetpunt.save(update_fields=['photo_url'])
-                     
-                waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
+                try:     
+                
+                    waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
                                               defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
+                except Exception as ex:
+                    logger.exception('Probleem met toevoegen van waarneming {waar} met waarde {waarde} aan meetpunt {meetpunt}'.format(waar=waarneming_naam, waarde=ec, meetpunt=meetpunt))
+                    continue
+                
                 if created:
                     logger.info('{locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_waarnemingen += 1
@@ -271,8 +276,7 @@ class Command(BaseCommand):
             if wn:
                 #logger.debug('Cartodb actualiseren')
                 util.exportCartodb2(cartodb, wn, 'allemetingen')
-            #logger.debug('Triggers evalueren')
-            #util.processTriggers(mp)
+                #util.processTriggers(mp)
             
             akvo.last_update = timezone.now()
             akvo.save()        
