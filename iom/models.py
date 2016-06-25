@@ -211,15 +211,24 @@ class CartoDb(models.Model):
     url = models.CharField(max_length=100,verbose_name='Account')
     viz = models.CharField(max_length=100,verbose_name='Visualisatie')    
     key = models.CharField(max_length=100,verbose_name='API key')
-    sql_url = models.CharField(max_length=100,verbose_name='SQL url')
-    datatable = models.CharField(max_length=50,verbose_name='tabelnaam')
-    
+    sql_url = models.CharField(max_length=100,verbose_name='SQL url',help_text='URL voor Cartodb SQL queries')
+    datatable = models.CharField(max_length=50,verbose_name='tabelnaam') # notused
+    layer_sql = models.TextField(null=True,blank=True,verbose_name='Aangepaste SQL voor kaartlaag') # notused
+
     class Meta:
         verbose_name = 'Cartodb configuratie'        
         
     def __unicode__(self):
         return self.name
-
+    
+    @property
+    def sql(self):
+        from django.utils.safestring import mark_safe
+        import re
+        sql_string = re.sub(r'[\r\n]+',' ',self.layer_sql)
+        safestring = mark_safe(sql_string)
+        return safestring
+    
     def runsql(self,sql):
         data = urllib.urlencode({'q': sql, 'api_key': self.key})
         request = urllib2.Request(url=self.sql_url, data=data)
