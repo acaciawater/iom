@@ -185,21 +185,32 @@ def exportCartodb(cartodb, mps, table):
 
     for m in mps:
         print m
+        
+        waarnemingen = m.waarneming_set.order_by('naam', 'datum')
+        if not waarnemingen:
+            logger.warning('Geen waarnemingen voor meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+            continue
+
         project = m.project()
         regio = project.name
+        meetpunt = m.name.replace("'", "''")
         p = m.location
         p.transform(4326)
-        waarnemingen = m.waarneming_set.all().order_by('datum')
+
+        logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+        sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
+        cartodb.runsql(sql)
+
         # group waarnemingen by name (diep/ondiep, ...)
-        group = groupby(waarnemingen,lambda w: w.naam)
-        for soort,waarnemingen in group:
+        for key,items in groupby(waarnemingen,lambda w: w.naam):
             values = ''
             ec2 = None
             wnid = 0
-            for w in waarnemingen:
+            for item in items:
+                w = item
                 wnid += 1
                 ec1 = ec2
-                ec2 = w.waarde# / 1000.0 # Micro Siemens to milli Siemens
+                ec2 = w.waarde
                 delta = ec2-ec1 if ec1 and ec2 else 0
                 date = w.datum
                 if w.naam.find('_'):
@@ -208,22 +219,18 @@ def exportCartodb(cartodb, mps, table):
                 else:
                     diep = 'NULL'
                 
+                print date, ec2
                 date = time.mktime(date.timetuple())
                 url = m.chart_thumbnail.name
                 url = 'NULL' if url is None else "'{url}'".format(url=url)
-                meetpunt = m.name.replace("'", "''")
                 s = "(ST_SetSRID(ST_Point({x},{y}),4326), {diep}, {charturl}, '{meetpunt}', '{waarnemer}', '{regio}', {wnid}, to_timestamp({date}), {ec}, {delta})"\
                     .format(x=p.x,y=p.y,diep=diep,charturl=url,meetpunt=meetpunt,waarnemer=unicode(m.waarnemer),wnid=wnid,ec=ec2,delta=delta,date=date,regio=regio)
                 if values:
                     values += ','
                 values += s
-                
             if values:
-                logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
-                sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
-                cartodb.runsql(sql)
                 sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,wnid,datum,ec,ec_toename) VALUES '.format(table=table) + values
-                cartodb.runsql(sql)
+                ok = cartodb.runsql(sql)
 
 # this version replaces only selected measurements
 def exportCartodb2(cartodb, waarnemingen, table):
