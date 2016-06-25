@@ -271,12 +271,8 @@ class Command(BaseCommand):
             if mp:
                 logger.debug('Grafieken aanpassen')
                 util.updateSeries(mp, user)
-                #logger.debug('Cartodb actualiseren')
-                #util.updateCartodb(cartodb, mps)
-            if wn:
-                #logger.debug('Cartodb actualiseren')
-                util.exportCartodb2(cartodb, wn, 'allemetingen')
-                #util.processTriggers(mp)
+                logger.debug('Cartodb actualiseren')
+                util.exportCartodb(cartodb, mp, 'allemetingen')
             
             akvo.last_update = timezone.now()
             akvo.save()        
