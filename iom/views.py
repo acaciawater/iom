@@ -41,12 +41,24 @@ class ContextMixin(object):
     ''' adds cartodb and akvo config to context '''
     def get_context_data(self, **kwargs):
         context = super(ContextMixin, self).get_context_data(**kwargs)
+        
         context['cartodb'] = get_object_or_404(CartoDb, pk=settings.CARTODB_ID)
         context['akvo'] = get_object_or_404(AkvoFlow, pk=settings.AKVOFLOW_ID)
         context['project'] = get_object_or_404(Project,pk=1)
         context['logos'] = Logo.objects.all()
+ 
+        # get last measurement
         w = Waarneming.objects.all().order_by('-datum')
         context['laatste'] = w[0] if w else None
+
+        # get layer number and date filter from query params
+        if hasattr(self, 'request'):
+            context['layer'] = self.request.GET.get('layer', 1) # layer 0 = changes, layer 1 = measurements
+            start = self.request.GET.get('start', None)
+            
+            context['start'] = start
+            context['stop'] = self.request.GET.get('stop', None)
+        
         return context
 
 class HomeView(ContextMixin,TemplateView):
