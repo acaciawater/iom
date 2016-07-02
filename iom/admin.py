@@ -7,7 +7,7 @@ from django.contrib import admin
 from django import forms
 from django.forms import Textarea
 from django.contrib.gis.db import models
-from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming
+from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
 from acacia.data.models import DataPoint, ManualSeries
 from acacia.data.events.models import Event
 
@@ -193,3 +193,6 @@ class RegisteredUserAdmin(admin.ModelAdmin):
                   ),
                 )
     
+@admin.register(Phone)
+class PhoneAdmin(admin.ModelAdmin):
+    list_display = ('device_id','last_contact', 'latitude', 'longitude')
