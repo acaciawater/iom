@@ -247,6 +247,9 @@ class Phone(models.Model):
     longitude = models.FloatField(null=True)
     accuracy = models.IntegerField(null=True)
 
+    def __unicode__(self):
+        return self.device_id
+    
 class Logo(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank = True)
