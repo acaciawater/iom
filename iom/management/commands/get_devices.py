@@ -12,9 +12,9 @@ import logging
 from iom.akvo import FlowAPI
 from iom.models import AkvoFlow, CartoDb, Phone
 
-logger = logging.getLogger('akvo')
+logger = logging.getLogger(__name__)
 
-def importPhones(api,akvo,projectlocatie,user):
+def importPhones(api,akvo):
     devices = api.get_devices()
     num = 0
     for device in devices:
