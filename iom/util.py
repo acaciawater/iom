@@ -70,8 +70,11 @@ def maak_meetpunt_thumbnail(meetpunt):
             s.name = 'ondiep' if s.name.endswith('o') else 'diep'
             ax=s.plot(**options)
             ax.set_ylabel('EC')
-    plt.savefig(imagepath)
-    
+
+    try:
+        plt.savefig(imagepath)
+    except:
+        logger.exception('Error saving thumbnail for %s' % meetpunt)
     plt.close()
     
     meetpunt.save()
@@ -112,7 +115,7 @@ def updateSeries(mps, user):
             waarde = w.waarde
             series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'mS/cm'})
             if created:
-                logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=mp.displayname))  
+                logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=unicode(mp)))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
             updated = created
             if not created and dp.value != waarde:
