@@ -77,17 +77,31 @@ body, html {height: 100%;}
 <script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
 <script>
 var theMap = null;
+var theLayer = null;
+var theStart = null;
+
 window.onload = function() {
   cartodb.createVis('map', '{{cartodb.viz}}')
   	.done(function(vis, layers) {
   		theMap = vis.getNativeMap();
+  		theLayer = layers[1];
   		{% block createdone %}
-  		var sub = layers[1].getSubLayer(0);
-{%if cartodb.layer_sql %}
-	var sub = layers[1].getSubLayer(0);
-	var sql = "{{cartodb.sql}}";
-	sub.setSQL(sql);
-{% endif %}
+  		{% if layer %}
+	  		var on = {{layer}};
+	  		var off = on?0:1;
+	  		layers[1].getSubLayer(on).show();
+	  		layers[1].getSubLayer(off).hide();
+			{% if start %}
+				// modify where clause in sublayer sql query definitiions
+				var pattern = /datum > '\d+-\d+-\d+'/i;
+				var replacement = "datum > '{{start}}'";
+				for(i=0;i<2;i++) {
+					var layer = layers[1].getSubLayer(i);
+					var sql = layer.getSQL();
+					layer.setSQL(sql.replace(pattern,replacement));
+				}
+			{% endif %}
+		{% endif %}
 		{% endblock createdone %}
   		// show date picker
   		var e = document.getElementById("datepicker");
@@ -101,20 +115,32 @@ window.onload = function() {
 <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
 <script type="text/javascript">
 $(function() {
-	function requery(sql) {
-		var layer = theMap.layer[1];
-		var sub = layer.getSubLayer(0);
-		sub.setSQL(sql);
+	
+	function filter(start) {
+		if (theMap) {
+			var pattern = /datum > '\d+-\d+-\d+'/i;
+			var replacement = "datum > '"+start+"'";
+			for(i=0;i<2;i++) {
+				var layer = theLayer.getSubLayer(i);
+				var sql = layer.getSQL();
+				sql = sql.replace(pattern,replacement);
+				layer.setSQL(sql);
+			}
+		}
 	}
 
-function apply(start, end) {
-      $('#datepicker span').html(start.format('D MMMM, YYYY') + ' - ' + end.format('D MMMM, YYYY'));
-    }
+	function apply(start, end) {
+		theStart = start;
+		$('#datepicker span').html(start.format('D MMMM, YYYY') + ' - ' + end.format('D MMMM, YYYY'));
+		var fromdate = start.format('MM-DD-YYYY');
+		filter(fromdate);
+	}
 
 	moment.locale('nl-NL');
-
-    $('#datepicker').daterangepicker({
+	
+	$('#datepicker').daterangepicker({
     	"applyClass": "btn-primary",
+    	"singleDatePicker": false,
     	"locale": {
             "format": "D MMM YYYY",
             "separator": " - ",
@@ -129,20 +155,36 @@ function apply(start, end) {
             "firstDay": 1
         },
         ranges: {
-           'Vandaag': [moment(), moment()],
+           'Alleen Vandaag': [moment(), moment()],
            'Gisteren': [moment().subtract(1, 'days'), moment()],
-           'Week': [moment().subtract(6, 'days'), moment()],
-           'Maand': [moment().subtract(1, 'month'), moment()],
-           'Deze maand': [moment().startOf('month'), moment()],
-           'Vorige maand': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+           'Afgelopen week': [moment().subtract(6, 'days'), moment()],
+           'Afgelopen maand': [moment().subtract(1, 'month'), moment()],
+           'Afgelopen twee maanden': [moment().subtract(2, 'month'), moment()],
         }
     }, apply);
+    
+	{% if start %}
+		apply(moment("{{start}}","MM-DD-YYYY"),moment());
+    {% endif %}
     
     $('#datepicker').on('cancel.daterangepicker', function(ev, picker) {
     	// clear range and requery
         $('#datepicker span').html('');
+  	  	filter("01-01-2010");
     });
 });
+
+function showWaarnemer(wid) {
+ 	var url = "waarnemer/"+wid;
+ 	var layer = theLayer.getSubLayer(0).visible? "0" : "1";
+ 	url += "?layer=" + layer;
+ 	if (theStart) {
+ 		var start = theStart.format("MM-DD-YYYY");
+ 		url += "&start="+start;
+ 	}
+ 	window.location.href=url;
+ 	return false;
+}
 
 </script>
 {% endlocalize %}
@@ -169,10 +211,9 @@ function apply(start, end) {
 <a href="#" class="list-group-item active"><img class="persona" src="{% static "img/user_group_two-512.png" %}"></img>Waarnemers<span class="badge" title='Aantal waarnemers'>{{waarnemers|length}}</a>
 {% for w in waarnemers %}
 <a href="{% url 'waarnemer-detail' w.id %}" class="list-group-item">{{w}}
-<span class = "badge" title='Aantal waarnemingen'>{{w.aantal_waarnemingen|defaultif0:""}}</span> 
-<br/>
+<!-- <a href="" class="list-group-item" onclick="showWaarnemer({{w.id}});">{{w}} -->
+<span class = "badge" title='Aantal waarnemingen'>{{w.aantal_waarnemingen|defaultif0:""}}</span> <br/>
 <div class='text-muted'><small>{{w.organisatie|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{w.laatste_waarneming.datum|date:"j M"|default:""}}</div></small></div>
-
 </a>
 {% endfor %}
 </div>
