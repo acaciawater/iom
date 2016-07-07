@@ -16,9 +16,13 @@ class Migration(migrations.Migration):
             name='chart_thumbnail',
             field=models.ImageField(help_text=b'Grafiek in popup op cartodb kaartje', upload_to=b'charts', null=True, verbose_name=b'voorbeeld', blank=True),
         ),
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name='meetpunt',
+            name='chart',
+        ),
+        migrations.AddField(
             model_name='meetpunt',
             name='chart',
             field=models.ForeignKey(blank=True, to='data.Chart', help_text=b'Interactive grafiek', null=True, verbose_name=b'grafiek'),
-        ),
+        )
     ]
