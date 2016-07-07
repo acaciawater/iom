@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cartodb',
             name='viz2',
-            field=models.CharField(default='viz to be added', max_length=100, verbose_name=b'Visualisatie veranderingen'),
+            field=models.CharField(default='viz to be added', null=True, blank = True, max_length=100, verbose_name=b'Visualisatie veranderingen'),
             preserve_default=False,
         ),
         migrations.AlterField(
