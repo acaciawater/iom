@@ -10,14 +10,31 @@ from django.views.generic.edit import UpdateView
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from .models import Waarnemer, Meetpunt, CartoDb
+from .models import Waarnemer, Meetpunt, Waarneming, CartoDb
 from acacia.data.models import Project
 import json
 import pandas as pd
 import locale
 from iom.models import AkvoFlow, Waarneming, Logo
 
+from django.core import serializers
+
+def JsonResponse(request, objects):
+    params = request.REQUEST # cant use GET here: values are lists
+    queryset = objects.filter(**params) if params else objects.all() if hasattr(objects,'all') else objects
+    return HttpResponse(serializers.serialize('json', queryset), content_type='application/json')
+
+def get_waarnemers(request):
+    return JsonResponse(request, Waarnemer.objects)
+
+def get_meetpunten(request):
+    return JsonResponse(request, Meetpunt.objects)
+
+def get_waarnemingen(request):
+    return JsonResponse(request, Waarneming.objects)
+
 def WaarnemingenToDict(request, pk):
+    ''' dict for use in waarnemingen detail view '''
     tz = timezone.get_current_timezone()
     locale.setlocale(locale.LC_ALL,'nl_NL.utf8')
     
@@ -36,7 +53,7 @@ def WaarnemingenToDict(request, pk):
     dct.sort(key=lambda x: x['date'],reverse=True)
     j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
     return HttpResponse(j, content_type='application/json')
-
+    
 class ContextMixin(object):
     ''' adds cartodb and akvo config to context '''
     def get_context_data(self, **kwargs):
@@ -54,9 +71,7 @@ class ContextMixin(object):
         # get layer number and date filter from query params
         if hasattr(self, 'request'):
             context['layer'] = self.request.GET.get('layer', 1) # layer 0 = changes, layer 1 = measurements
-            start = self.request.GET.get('start', None)
-            
-            context['start'] = start
+            context['start'] = self.request.GET.get('start', None)
             context['stop'] = self.request.GET.get('stop', None)
         
         return context

@@ -18,14 +18,20 @@ from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
 from iom.views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
-    WaarnemingenToDict, UploadPhotoView
+    WaarnemingenToDict, UploadPhotoView,\
+    get_waarnemers, get_waarnemingen, get_meetpunten
 
 urlpatterns = [
     url(r'^$',HomeView.as_view(),name='home'),
     url(r'^home$',HomeView.as_view(),name='home'),
     url(r'^akvo$','iom.views.importAkvo',name='akvo'),
     url(r'^waarnemer/(?P<pk>\d+)$',WaarnemerDetailView.as_view(),name='waarnemer-detail'),
+
     url(r'^get/series/(?P<pk>\d+)/$', 'acacia.data.views.SeriesToDict'),
+    url(r'^get/waarnemers', get_waarnemers),
+    url(r'^get/meetpunten', get_meetpunten),
+    url(r'^get/waarnemingen', get_waarnemingen),
+    
     url(r'^waarnemingen/(?P<pk>\d+)$', WaarnemingenToDict),
     url(r'^meetpunt/(?P<pk>\d+)$',MeetpuntDetailView.as_view(),name='meetpunt-detail'),
     url(r'^foto/(?P<pk>\d+)$',UploadPhotoView.as_view(),name='upload-photo'),
