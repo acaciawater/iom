@@ -104,7 +104,7 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
     actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten]
-    list_display = ('name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
+    list_display = ('identifier', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', )
     inlines = [WaarnemingInline,]
     search_fields = ('name', 'waarnemer__achternaam', )
