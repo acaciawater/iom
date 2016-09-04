@@ -52,8 +52,10 @@ coverage.xml
 *.gz
 *.py~
 *.log
-#static/
+static/
 media/
+logs/
+.settings/
 
 # Sphinx documentation
 docs/_build/
