@@ -198,8 +198,8 @@ def importAkvoMonitoring(api,akvo):
                 if foto:
                     foto = download_photo(os.path.join(akvo.storage,os.path.basename(foto)))
         
-                if foto and not meetpunt.photo_url:
-                    # update meetpunt along the way..
+                if foto:
+                    # update meetpunt photo along the way..
                     meetpunt.photo_url = foto
                     meetpunt.save(update_fields=['photo_url'])
                 try:     
