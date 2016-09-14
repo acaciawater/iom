@@ -213,7 +213,7 @@ function showWaarnemer(wid) {
 <a href="{% url 'waarnemer-detail' w.id %}" class="list-group-item">{{w}}
 <!-- <a href="" class="list-group-item" onclick="showWaarnemer({{w.id}});">{{w}} -->
 <span class = "badge" title='Aantal waarnemingen'>{{w.aantal_waarnemingen|defaultif0:""}}</span> <br/>
-<div class='text-muted'><small>{{w.organisatie|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{w.laatste_waarneming.datum|date:"j M"|default:""}}</div></small></div>
+<div class='text-muted'><small>{{w.organisatie|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{w.laatste_waarneming.datum|date:"j M Y"|default:""}}</div></small></div>
 </a>
 {% endfor %}
 </div>
