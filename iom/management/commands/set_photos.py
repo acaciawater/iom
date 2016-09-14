@@ -14,20 +14,17 @@ logger = logging.getLogger('akvo')
 
 class Command(BaseCommand):
     args = ''
-    help = 'foreign key to chart check'
+    help = 'set phot of meetpunt to last photo taken'
 
     def handle(self, *args, **options):
         for mp in Meetpunt.objects.all():
-            try:
-                chart = mp.chart.name
-            except:
-                print mp
-                mp.chart = None
-                mp.save()
-        for dp in DataPoint.objects.all():
-            try:
-                s = dp.series
-            except:
-                print dp.series_id, dp
-                dp.delete()
+            waarnemingen = mp.waarneming_set.order_by('-datum')
+            for w in waarnemingen:
+                if w.foto_url:
+                    if mp.photo_url != w.foto_url:
+                        mp.photo_url = w.foto_url
+                        mp.save()
+                        print mp
+                    break
             
+                
