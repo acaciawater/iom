@@ -108,7 +108,12 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
-        context['meetpunten'] = waarnemer.meetpunt_set.all()
+        mps = list(waarnemer.meetpunt_set.all())
+        def _dosort(w):
+            laatste = w.laatste_waarneming()
+            return laatste.datum if laatste else datetime.datetime.now()
+        mps.sort(key = _dosort, reverse = True)
+        context['meetpunten'] = mps 
         return context
 
 class MeetpuntDetailView(ContextMixin,DetailView):
