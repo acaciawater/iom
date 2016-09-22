@@ -85,18 +85,19 @@ window.onload = function() {
   	.done(function(vis, layers) {
   		theMap = vis.getNativeMap();
   		theLayer = layers[1];
+  		var numLayers = theLayer.getSubLayerCount();
   		{% block createdone %}
   		{% if layer %}
 	  		var on = {{layer}};
 	  		var off = on?0:1;
-	  		layers[1].getSubLayer(on).show();
-	  		layers[1].getSubLayer(off).hide();
+	  		theLayer.getSubLayer(on).show();
+	  		theLayer.getSubLayer(off).hide();
 			{% if start %}
 				// modify where clause in sublayer sql query definitiions
 				var pattern = /datum > '\d+-\d+-\d+'/i;
 				var replacement = "datum > '{{start}}'";
-				for(i=0;i<2;i++) {
-					var layer = layers[1].getSubLayer(i);
+				for(i=0;i<numLayers;i++) {
+					var layer = theLayer.getSubLayer(i);
 					var sql = layer.getSQL();
 					layer.setSQL(sql.replace(pattern,replacement));
 				}
@@ -120,7 +121,8 @@ $(function() {
 		if (theMap) {
 			var pattern = /datum > '\d+-\d+-\d+'/i;
 			var replacement = "datum > '"+start+"'";
-			for(i=0;i<2;i++) {
+	  		var numLayers = theLayer.getSubLayerCount();
+			for(i=0;i<numLayers;i++) {
 				var layer = theLayer.getSubLayer(i);
 				var sql = layer.getSQL();
 				sql = sql.replace(pattern,replacement);
@@ -170,7 +172,7 @@ $(function() {
     $('#datepicker').on('cancel.daterangepicker', function(ev, picker) {
     	// clear range and requery
         $('#datepicker span').html('');
-  	  	filter("01-01-2010");
+  	  	filter("01-01-1970");
     });
 });
 
