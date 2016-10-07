@@ -194,8 +194,7 @@ def exportCartodb(cartodb, mps, table):
             logger.warning('Geen waarnemingen voor meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             continue
 
-        project = m.project()
-        regio = project.name
+        regio = m.projectlocatie.name
         meetpunt = m.name.replace("'", "''")
         p = m.location
         p.transform(4326)
@@ -241,8 +240,7 @@ def exportCartodb2(cartodb, waarnemingen, table):
     group = groupby(waarnemingen,lambda w: w.locatie)
     for m,waarnemingen in group:
         print m
-        project = m.project()
-        regio = project.name
+        regio = m.projectlocatie.name
         p = m.location
         p.transform(4326)
         values = ''
