@@ -6,7 +6,7 @@ Created on Jun 14, 2015
 from django.db import models
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
-from acacia.data.models import MeetLocatie, Chart
+from acacia.data.models import MeetLocatie, Chart, ProjectLocatie
 
 from django.contrib.gis.db import models as geo
 
@@ -77,7 +77,10 @@ class Waarnemer(models.Model):
     def __unicode__(self):
         s = ''
         if self.initialen and len(self.initialen) > 0:
-            s = self.initialen + ' '
+            s = self.initialen
+            if s[-1] != '.':
+                s += '.'
+            s += ' '
         if self.tussenvoegsel and len(self.tussenvoegsel) > 0:
             s += self.tussenvoegsel + ' '
         return s + self.achternaam
@@ -105,6 +108,10 @@ class Waarnemer(models.Model):
         except:
             return None
 
+    def projectlocaties(self):
+        # alle projectlocaties waar deze waar=nemenr gemeten heeft
+        return ','.join(set([mp.projectlocatie.name for mp in self.meetpunt_set.all()]))
+    
 class Alias(models.Model):        
     ''' alias voor Waarnemer (wordt gebruikt in Akvo Flow) '''
     alias = models.CharField(max_length=50)
@@ -186,6 +193,7 @@ class Waarneming(models.Model):
         
 class AkvoFlow(models.Model):
     ''' Akvo Flow configuratie '''
+    projectlocatie = models.OneToOneField(ProjectLocatie)
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True, null=True)
     instance = models.CharField(max_length=100)
@@ -206,6 +214,7 @@ import urllib,urllib2
 
 class CartoDb(models.Model):
     ''' Cartodb configuratie '''
+    projectlocatie = models.OneToOneField(ProjectLocatie)
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True, null=True)
     url = models.CharField(max_length=100,verbose_name='Account')
@@ -213,7 +222,6 @@ class CartoDb(models.Model):
     key = models.CharField(max_length=100,verbose_name='API key')
     sql_url = models.CharField(max_length=100,verbose_name='SQL url',help_text='URL voor Cartodb SQL queries')
     datatable = models.CharField(max_length=50,verbose_name='tabelnaam') # notused
-    layer_sql = models.TextField(null=True,blank=True,verbose_name='Aangepaste SQL voor kaartlaag') # notused
 
     class Meta:
         verbose_name = 'Cartodb configuratie'        

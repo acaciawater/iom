@@ -8,7 +8,7 @@ from django import forms
 from django.forms import Textarea
 from django.contrib.gis.db import models
 from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
-from acacia.data.models import DataPoint, ManualSeries
+from acacia.data.models import DataPoint, ManualSeries, ProjectLocatie
 from acacia.data.events.models import Event
 
 from django.core.exceptions import ValidationError
@@ -104,8 +104,8 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
     actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten]
-    list_display = ('identifier', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
-    list_filter = ('waarnemer', )
+    list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
+    list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
     search_fields = ('name', 'waarnemer__achternaam', )
     fields = ('name', 'waarnemer', 'location', 'photo_url', 'chart_thumbnail', 'description',)
@@ -143,9 +143,23 @@ class AliasInline(admin.TabularInline):
 
 @admin.register(Waarnemer)
 class WaarnemerAdmin(admin.ModelAdmin):
+
+    class LocatieFilter(admin.SimpleListFilter):
+        title = 'locatie'
+        parameter_name = 'locatie'
+
+        def lookups(self, request, modeladmin):
+            return [(p.pk, p.name) for p in ProjectLocatie.objects.all()]
+
+        def queryset(self, request, queryset):
+#             if self.value() is not None:
+#                 mps = Meetpunt.objects.filter(waarnemer__in=queryset, projectlocatie=self.value)
+#                 return queryset.filter(meetpunt_set__projectlocatie__name = self.value())
+            return queryset
+    
     actions = [update_cdb_waarnemers,]        
-    list_display = ('achternaam', 'tussenvoegsel', 'voornaam', 'organisatie', 'aantal_meetpunten', 'aantal_waarnemingen')
-    list_filter = ('achternaam', 'organisatie', )
+    list_display = ('achternaam', 'tussenvoegsel', 'voornaam', 'initialen','organisatie', 'projectlocaties', 'aantal_meetpunten', 'aantal_waarnemingen')
+    list_filter = ('achternaam', 'organisatie', LocatieFilter)
     search_fields = ('achternaam', 'voornaam', )
     ordering = ('achternaam', )
     inlines = [AliasInline]
