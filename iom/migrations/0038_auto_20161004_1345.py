@@ -7,13 +7,12 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('iom', '0035_auto_20160607_1201'),
+        ('iom', '0037_auto_20161004_1147'),
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.RemoveField(
             model_name='cartodb',
-            name='viz',
-            field=models.CharField(max_length=100, verbose_name=b'Visualisatie metingen'),
+            name='layer_sql',
         ),
     ]
