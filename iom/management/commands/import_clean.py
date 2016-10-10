@@ -76,7 +76,7 @@ def importRegistrationForm(sheet,projectlocatie,user):
         displayName = cells['Display Name']
         submitter = cells['Submitter']
         device = cells['Device identifier']
-        date = parser.parse(cells['Submission Date'])
+        date = parser.parse(cells['Submission Date'],dayfirst=True)
         akvowaarnemer = cells['Waarnemer']
         meetid = cells['Meetpunt ID']
         foto = cells['Maak een foto van het meetgebied']
@@ -104,7 +104,7 @@ def importRegistrationForm(sheet,projectlocatie,user):
         else:
             meetName = displayName
 
-        name = meetName
+        name = meetName or 'Naamloos'
         meetpunt = None
         for dup in range(10):
             try:
@@ -129,28 +129,29 @@ def importRegistrationForm(sheet,projectlocatie,user):
             logger.info('Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=name,name=unicode(waarnemer)))
             meetpunten.add(meetpunt)
 
-        if device != 'IMPORTER':
-            ec = cells['Meet EC waarde - ECOND'] 
-            diep = cells['Diep of ondiep gemeten?']
-            waarneming_naam = maak_naam('EC',diep)
-    
-            try:
-                waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
-                                                  defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
-            except Exception as e:
-                logger.exception('Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
-                continue
-    
-            if created:
-                logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
-                waarnemingen.add(waarneming)
-                meetpunten.add(meetpunt)
-    
-            else:#if waarneming.waarde != ec:
-                waarneming.waarde = ec
-                waarneming.save()
-                waarnemingen.add(waarneming)
-                meetpunten.add(meetpunt)
+        #if device != 'IMPORTER':
+        ec = cells['Meet EC waarde - ECOND'] 
+        diep = cells['Diep of ondiep gemeten?']
+        waarneming_naam = maak_naam('EC',diep)
+
+        try:
+            waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
+                                              defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
+        except Exception as e:
+            logger.exception('Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
+            continue
+
+        if created:
+            logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+            waarnemingen.add(waarneming)
+            meetpunten.add(meetpunt)
+
+        elif waarneming.waarde != ec:
+            waarneming.waarde = ec
+            waarneming.save()
+            waarnemingen.add(waarneming)
+            meetpunten.add(meetpunt)
+        #endif
         
     logger.info('Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
 
@@ -177,7 +178,7 @@ def importMonitoringForm(sheet):
             continue
         
         device = cells['Device identifier']
-        date = parser.parse(cells['Submission Date'])
+        date = parser.parse(cells['Submission Date'],dayfirst=True) # format: day first
         ec=cells['EC waarde - ECOND']
         foto=cells['Maak een foto van het meetgebied']
         diep=cells['Diep of ondiep']
@@ -231,8 +232,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         user = User.objects.get(username=options.get('user'))
-        filename = options.get('fname')
-
+        filename = args[0]
+        logger.debug('Importing '+filename)
         locatie = None
         match = re.search('RAW_DATA\-(\d+)\.', filename)
         if match:
@@ -260,12 +261,12 @@ class Command(BaseCommand):
             else:
                 logger.debug('Waarnemingen ophalen voor {}'.format(locatie))
                 mp,wn=importMonitoringForm(sheet)
-            if mp:
-                logger.debug('Grafieken aanpassen')
-                util.updateSeries(mp, user)
+            #if mp:
+                #logger.debug('Grafieken aanpassen')
+                #util.updateSeries(mp, user)
                 #logger.debug('Cartodb actualiseren')
                 #cartodb = locatie.cartodb
-                #util.exportCartodb(cartodb, mp, 'allemetingen')
+                #util.exportCartodb(cartodb, mp)
             
             #akvo = locatie.akvoflow
             #akvo.last_update = timezone.now()
