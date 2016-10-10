@@ -128,28 +128,29 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
             logger.info('Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=meetName,name=unicode(waarnemer)))
             meetpunten.add(meetpunt)
 
-        if device != 'IMPORTER':
-            ec = api.get_answer(answers,questionText='Meet EC waarde - ECOND') 
-            diep = api.get_answer(answers,questionText='Diep of ondiep gemeten?')
-            waarneming_naam = maak_naam('EC',diep)
-    
-            try:
-                waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
-                                                  defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
-            except Exception as e:
-                logger.exception('Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
-                continue
-    
-            if created:
-                logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
-                waarnemingen.add(waarneming)
-                meetpunten.add(meetpunt)
-    
-            else:#if waarneming.waarde != ec:
-                waarneming.waarde = ec
-                waarneming.save()
-                waarnemingen.add(waarneming)
-                meetpunten.add(meetpunt)
+        #if device != 'IMPORTER':
+        ec = api.get_answer(answers,questionText='Meet EC waarde - ECOND') 
+        diep = api.get_answer(answers,questionText='Diep of ondiep gemeten?')
+        waarneming_naam = maak_naam('EC',diep)
+
+        try:
+            waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
+                                              defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
+        except Exception as e:
+            logger.exception('Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
+            continue
+
+        if created:
+            logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+            waarnemingen.add(waarneming)
+            meetpunten.add(meetpunt)
+
+        else:#if waarneming.waarde != ec:
+            waarneming.waarde = ec
+            waarneming.save()
+            waarnemingen.add(waarneming)
+            meetpunten.add(meetpunt)
+        #endif
         
     logger.info('Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
 
@@ -205,14 +206,14 @@ def importAkvoMonitoring(api,akvo):
                     continue
                 
                 if created:
-                    logger.info('created {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+                    logger.debug('created {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_waarnemingen += 1
                     waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
                 elif waarneming.waarde != ec:
                     waarneming.waarde = ec
                     waarneming.save()
-                    logger.info('updated {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+                    logger.debug('updated {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_replaced += 1
                     waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
@@ -249,17 +250,17 @@ class Command(BaseCommand):
             cartodb = locatie.cartodb
             api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
             try:
-                logger.debug('Meetpuntgegevens ophalen voor {}'.format(locatie))
+                logger.info('Meetpuntgegevens ophalen voor {}'.format(locatie))
                 m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=locatie,user=user)
-                logger.debug('Waarnemingen ophalen')
+                logger.info('Waarnemingen ophalen voor {}'.format(locatie))
                 m2,w2=importAkvoMonitoring(api, akvo)
                 mp = m1|m2
                 wn = w1|w2
                 if mp:
-                    logger.debug('Grafieken aanpassen')
+                    logger.info('Grafieken aanpassen')
                     util.updateSeries(mp, user)
                     #logger.debug('Cartodb actualiseren')
-                    #util.exportCartodb(cartodb, mp, 'allemetingen')
+                    #util.exportCartodb(cartodb, mp)
                 
                 akvo.last_update = timezone.now()
                 akvo.save()        
