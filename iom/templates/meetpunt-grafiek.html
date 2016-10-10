@@ -39,7 +39,7 @@ body, html {height: 100%;}
 <div class = "col-md-4">
 {% block list %}
 <div id="list" class="list-group scroll">
-<a href="#" class="list-group-item active" title="Meetpunt">{{object.waarnemer}} Meetpunt {{object.name}}<span title="Aantal waarnemingen" class="badge">{{series.aantal}}</a>
+<a href="#" class="list-group-item active" title="Meetpunt">Meetpunt {{object.name}}<span title="Aantal waarnemingen" class="badge">{{series.aantal}}</a>
 <table data-toggle="table" data-pagination=true data-page-size=12 data-url="/waarnemingen/{{object.pk}}">
 <thead>
 <tr>
