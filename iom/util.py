@@ -46,6 +46,7 @@ def zoek_tijdreeksen(target,tolerance=1.0):
         series.extend(mp.series())
     return series
 
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -59,6 +60,11 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     meetpunt.chart_thumbnail.name = imagefile
     
+#     matplotlib.rc('axes', labelsize=18)
+#     matplotlib.rc('axes', titlesize=24)
+#     matplotlib.rc('xtick', labelsize=12)
+#     matplotlib.rc('ytick', labelsize=12)
+    
     plt.figure(figsize=(9,3))
     options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
     # TODO: alle tijdreeksen laten zien rondom een meetpunt!
@@ -66,8 +72,8 @@ def maak_meetpunt_thumbnail(meetpunt):
     for mp in mps:
         s = mp.get_series('EC')
         if s:
-            s =s.to_pandas()
-            s.name = 'ondiep' if s.name.endswith('o') else 'diep'
+            s = s.to_pandas()
+            s.name = 'ondiep' if 'ndiep' in s.name else 'diep'
             ax=s.plot(**options)
             ax.set_ylabel('EC')
 
@@ -184,8 +190,9 @@ def updateCartodb(cartodb, mps):
 from itertools import groupby
 
 # this version replaces ALL measurements of a meetpunt
-def exportCartodb(cartodb, mps, table):
-
+def exportCartodb(cartodb, mps, table = None):
+    if not table:
+        table = cartodb.datatable
     for m in mps:
         print m
         
@@ -200,6 +207,7 @@ def exportCartodb(cartodb, mps, table):
         p.transform(4326)
 
         logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+        # TODO: add regio to where clause
         sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
         cartodb.runsql(sql)
 
@@ -235,7 +243,9 @@ def exportCartodb(cartodb, mps, table):
                 ok = cartodb.runsql(sql)
 
 # this version replaces only selected measurements
-def exportCartodb2(cartodb, waarnemingen, table):
+def exportCartodb2(cartodb, waarnemingen, table = None):
+    if not table:
+        table = cartodb.datatable
     # group waarnemingen by meetpunt
     group = groupby(waarnemingen,lambda w: w.locatie)
     for m,waarnemingen in group:
@@ -269,6 +279,7 @@ def exportCartodb2(cartodb, waarnemingen, table):
             logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             datums = ','.join(['to_timestamp({})'.format(d) for d in dates])
             # delete all waarnemingen with matching meetpunt, waarnemer and date
+            # TODO: add region to where clause
             sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}' AND datum in ({dates})".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt, dates=datums)
             cartodb.runsql(sql)
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
