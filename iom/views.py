@@ -10,12 +10,12 @@ from django.views.generic.edit import UpdateView
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from .models import Waarnemer, Meetpunt, Waarneming, CartoDb
+from .models import Waarnemer, Meetpunt, Waarneming, CartoDb, AkvoFlow, Waarneming, Logo
 from acacia.data.models import Project
 import json
 import pandas as pd
 import locale
-from iom.models import AkvoFlow, Waarneming, Logo
+import datetime, pytz
 
 from django.core import serializers
 
@@ -76,6 +76,8 @@ class ContextMixin(object):
         
         return context
 
+from django.db.models import Count
+
 class HomeView(ContextMixin,TemplateView):
     template_name = 'home.html'
     
@@ -91,11 +93,9 @@ class HomeView(ContextMixin,TemplateView):
                             'lon': pos.x,
                             'url': ''#reverse('meetpunt-info', args=[mp.id]),
                             })
-        waarnemers = list(Waarnemer.objects.all())
-        waarnemers.sort(key = lambda x: -x.aantal_waarnemingen())
-        actief = [w for w in waarnemers if w.waarneming_set]
+        
+        waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
         context['waarnemers'] = waarnemers
-        context['actief'] = actief
         context['meetpunten'] = meetpunten
         context['content'] = json.dumps(content)
         context['maptype'] = 'ROADMAP'
@@ -108,10 +108,11 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
-        mps = list(waarnemer.meetpunt_set.all())
+        wns = waarnemer.waarneming_set.all()
+        mps = list(set([w.locatie for w in wns]))
         def _dosort(w):
             laatste = w.laatste_waarneming()
-            return laatste.datum if laatste else datetime.datetime.now()
+            return laatste.datum if laatste else datetime.datetime.now(pytz.UTC)
         mps.sort(key = _dosort, reverse = True)
         context['meetpunten'] = mps 
         return context
