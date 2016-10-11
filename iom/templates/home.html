@@ -6,6 +6,8 @@
 {% block extrastyle %}
 {{ block.super }}
 <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+<link rel="stylesheet" href="/static/css/search.css" />
 <style>
 body, html {height: 100%;}
 .fullheight {height: 100%;}
@@ -75,6 +77,8 @@ body, html {height: 100%;}
 {{ block.super }}
 {% localize off %}
 <script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
 <script>
 var theMap = null;
 var theLayer = null;
@@ -110,11 +114,7 @@ window.onload = function() {
   	});
     $("#list").height($("#map").height());
 }
-</script>
-<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
-<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
-<script type="text/javascript">
+
 $(function() {
 	
 	function filter(start) {
@@ -208,6 +208,12 @@ function showWaarnemer(wid) {
 {% endif %}
 </div>
 <div class = "col-md-3">
+<div class="form-group">
+   <div class="icon-addon addon-sm">
+       <input type="text" placeholder="Zoeken..." class="form-control" id="email">
+       <label for="email" class="glyphicon glyphicon-search" rel="tooltip" title="zoeken"></label>
+   </div>
+</div>
 {% block list %}
 <div id="list" class = "list-group scroll">
 <a href="#" class="list-group-item active"><img class="persona" src="{% static "img/user_group_two-512.png" %}"></img>Waarnemers<span class="badge" title='Aantal waarnemers'>{{waarnemers|length}}</a>
