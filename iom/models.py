@@ -97,14 +97,11 @@ class Waarnemer(models.Model):
         return self.meetpunt_set.count()
     
     def aantal_waarnemingen(self):
-        w = sum([m.aantal_waarnemingen() for m in self.meetpunt_set.all()])
-        return w
+        return self.waarneming_set.count()
     
     def laatste_waarneming(self):
         try:
-            laatste = [m.laatste_waarneming() for m in self.meetpunt_set.all() if m]
-            laatste.sort(key = lambda x: x.datum)
-            return laatste[-1]
+            return self.waarneming_set.latest('datum')
         except:
             return None
 
