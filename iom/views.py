@@ -83,21 +83,9 @@ class HomeView(ContextMixin,TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super(HomeView, self).get_context_data(**kwargs)
-        content = []
-        meetpunten = Meetpunt.objects.all() 
-        for mp in meetpunten:
-            pos = mp.latlon()
-            content.append({'meetpunt': mp.pk,
-                            'name': mp.name,
-                            'lat': pos.y,
-                            'lon': pos.x,
-                            'url': ''#reverse('meetpunt-info', args=[mp.id]),
-                            })
-        
+        # build iterable for waarnemers with at least 1 measurement and sort descending by number of measurements
         waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
         context['waarnemers'] = waarnemers
-        context['meetpunten'] = meetpunten
-        context['content'] = json.dumps(content)
         context['maptype'] = 'ROADMAP'
         return context
 
@@ -108,8 +96,8 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
-        wns = waarnemer.waarneming_set.all()
-        mps = list(set([w.locatie for w in wns]))
+        # get list of unique measuring locations where this waarnemer has taken measurments
+        mps = list(set([w.locatie for w in waarnemer.waarneming_set.all()]))
         def _dosort(w):
             laatste = w.laatste_waarneming()
             return laatste.datum if laatste else datetime.datetime.now(pytz.UTC)
@@ -126,6 +114,9 @@ class MeetpuntDetailView(ContextMixin,DetailView):
         meetpunt = self.get_object();
         latlon = meetpunt.latlon()
         context['location'] = latlon
+        context['zoom'] = 16
+        context['maptype'] = 'SATELLITE'
+        context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
     
 class UploadPhotoView(UpdateView):
