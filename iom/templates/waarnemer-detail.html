@@ -61,7 +61,7 @@ function hideMarker() {
 {% endblock extrastyle %}
 {% block list %}
 <div id="list" class = "list-group scroll">
-<a href="#" class="list-group-item active" title="Waarnemer"><img class="persona" src="{% static "img/user.png" %}"></img>{{object}}<span title="Aantal waarnemingen" class="badge">{{object.aantal_waarnemingen}}</a>
+<a href="#" class="list-group-item active" title="Waarnemer"><img class="persona" src="{% static "img/user.png" %}"></img>{{object}}<span title="Aantal waarnemingen" class="badge">{{object.waarneming_set.count}}</a>
 {% for m in meetpunten %}
 <div class="row">
 	<div class="col col-xs-9">
