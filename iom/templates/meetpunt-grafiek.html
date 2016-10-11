@@ -8,6 +8,7 @@
 <style>
 body, html {height: 100%;}
 .fullheight {height: 100%;}
+.halfheight {height: 50%;}
 .fullwidth {width: 100%;}
 .wrapper {height: 100%;}
 #chart {width: 100%; height: 100%; padding-bottom: 24px;}
@@ -15,8 +16,14 @@ body, html {height: 100%;}
 .foto {
   height: 48px;
   float: right;
-/*  image-orientation: from-image; *//* firefox >= 26 */
 }
+#pano,#map {
+	width:49%;
+	height:98%;
+}
+#map {float:left;}
+#pano {float:right;}
+
 .foto:hover {
   position: absolute;
   right: 0px;
@@ -24,18 +31,49 @@ body, html {height: 100%;}
   height: 334px;
   z-index: 999;
 }
-
 </style>
 {% endblock %}
 {% block script %}
 {{ block.super }}
 <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.8.1/bootstrap-table.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.8.1/locale/bootstrap-table-nl-NL.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{apikey}}"></script>
+{% localize off %}
+<script>
+var map;
+function initMap() {
+    var pos = new google.maps.LatLng({{location.y}},{{location.x}});
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: {{zoom}},
+        center: pos,
+        mapTypeId: google.maps.MapTypeId.{{maptype}}
+    });
+    var marker = new google.maps.Marker({map: map, position: pos, title: "{{object.name}}" });
+//     var contentString = {{content|safe}};
+// 	var infowindow = new google.maps.InfoWindow({content: contentString});
+// 	google.maps.event.addListener(marker, 'click', function() {
+//     	infowindow.open(map,marker);
+//   	});
+    var pano = new google.maps.StreetViewPanorama(
+	    document.getElementById('pano'), {
+	      position: pos,
+    });
+    map.setStreetView(pano);
+}
+$(function(){initMap();});
+</script>
+{% endlocalize %}
 {% endblock script %}
 {% block content %}
 <div class = "container-fluid fullheight">
-<div class = "row-fluid fullheight">
-<div class = "col-md-8 fullheight"><div id="chart"><iframe class="fullheight fullwidth" src="{{object.chart_url}}" marginwidth="0" seamless="seamless" frameborder="0"></iframe></div></div>
+<div class = "row row-fluid fullheight">
+<div class = "col-md-8 halfheight">
+<div class = "row row-fluid fullheight">
+<div id="map">Kaart</div>
+<div id="pano">Pano</div>
+</div>
+<div class = "row row-fluid fullheight"><div id="chart"><iframe class="fullheight fullwidth" src="{{object.chart_url}}" marginwidth="0" seamless="seamless" frameborder="0"></iframe></div></div>
+</div>
 <div class = "col-md-4">
 {% block list %}
 <div id="list" class="list-group scroll">
@@ -52,6 +90,7 @@ body, html {height: 100%;}
 </table>
 </div>
 {% endblock list %}
+</div>
 </div>
 </div>
 {% endblock content %}
