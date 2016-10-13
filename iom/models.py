@@ -121,8 +121,9 @@ class Alias(models.Model):
         verbose_name_plural = 'Aliassen'
         
 class Meetpunt(MeetLocatie):
+    from akvo import uuid
     # Akvo flow meetpunt gegevens
-    identifier=models.CharField(max_length=50)
+    identifier=models.CharField(max_length=50,default=uuid())
     displayname = models.CharField(max_length=100)
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
@@ -190,7 +191,7 @@ class Waarneming(models.Model):
         
 class AkvoFlow(models.Model):
     ''' Akvo Flow configuratie '''
-    projectlocatie = models.OneToOneField(ProjectLocatie)
+    projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True, null=True)
     instance = models.CharField(max_length=100)

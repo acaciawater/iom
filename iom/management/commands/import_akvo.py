@@ -63,9 +63,12 @@ def download_photo(url):
         return url
                 
 def importAkvoRegistration(api,akvo,projectlocatie,user):
-    surveyId = akvo.regform
     meetpunten=set()
     waarnemingen=set()
+    surveyId = akvo.regform
+    if not surveyId:
+        logger.warning('No registration form for akvo configuration {}'.format(akvo))
+        return meetpunten, waarnemingen 
     num_meetpunten = 0
     update = akvo.last_update + datetime.timedelta(days=-1)
     beginDate=as_timestamp(update)
@@ -246,25 +249,24 @@ class Command(BaseCommand):
         else:
             locaties = ProjectLocatie.objects.all()
         for locatie in locaties:
-            akvo = locatie.akvoflow
             cartodb = locatie.cartodb
-            api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
-            try:
-                logger.info('Meetpuntgegevens ophalen voor {}'.format(locatie))
-                m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=locatie,user=user)
-                logger.info('Waarnemingen ophalen voor {}'.format(locatie))
-                m2,w2=importAkvoMonitoring(api, akvo)
-                mp = m1|m2
-                wn = w1|w2
-                if mp:
-                    logger.info('Grafieken aanpassen')
-                    util.updateSeries(mp, user)
-                    #logger.debug('Cartodb actualiseren')
-                    #util.exportCartodb(cartodb, mp)
-                
-                akvo.last_update = timezone.now()
-                akvo.save()        
-            except Exception as e:
-                logger.exception('Probleem met verwerken nieuwe EC metingen: %s',e)
-            finally:
-                pass
+            for akvo in locatie.akvoflow_set.all():
+                api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
+                try:
+                    logger.info('Meetpuntgegevens ophalen voor {}'.format(locatie))
+                    m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=locatie,user=user)
+                    logger.info('Waarnemingen ophalen voor {}'.format(locatie))
+                    m2,w2=importAkvoMonitoring(api, akvo)
+                    mp = m1|m2
+                    wn = w1|w2
+                    if mp:
+                        logger.info('Grafieken aanpassen')
+                        util.updateSeries(mp, user)
+                        logger.info('Cartodb actualiseren')
+                        util.exportCartodb(cartodb, mp)
+                    akvo.last_update = timezone.now()
+                    akvo.save()        
+                except Exception as e:
+                    logger.exception('Probleem met verwerken nieuwe EC metingen: %s',e)
+                finally:
+                    pass
