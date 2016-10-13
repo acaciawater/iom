@@ -60,7 +60,7 @@ class WaarnemingInline(admin.TabularInline):
 
 def update_cdb_meetpunten(modeladmin, request, queryset):
     util.updateSeries(queryset, request.user)
-    util.updateCartodb(CartoDb.objects.get(pk=1), queryset)
+    util.exportCartodb(CartoDb.objects.get(pk=1), queryset)
 update_cdb_meetpunten.short_description = 'cartodb en tijdreeksen actualiseren met waarnemingen van geselecteerde meetpunten'
 
 def update_cdb_waarnemers(modeladmin, request, queryset):
@@ -108,7 +108,7 @@ class MeetpuntAdmin(admin.ModelAdmin):
     list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
     search_fields = ('name', 'waarnemer__achternaam', )
-    fields = ('name', 'waarnemer', 'location', 'photo_url', 'chart_thumbnail', 'description',)
+    fields = ('name', 'waarnemer', 'projectlocatie', 'location', 'photo_url', 'chart_thumbnail', 'description',)
     formfield_overrides = {models.PointField:{'widget': Textarea}}
     
 class AdresForm(forms.ModelForm):
