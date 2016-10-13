@@ -10,6 +10,7 @@ from django.views.generic.edit import UpdateView
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.db.models import Q
 from .models import Waarnemer, Meetpunt, Waarneming, CartoDb, AkvoFlow, Waarneming, Logo
 from acacia.data.models import Project
 import json
@@ -55,25 +56,23 @@ def WaarnemingenToDict(request, pk):
     return HttpResponse(j, content_type='application/json')
     
 class ContextMixin(object):
-    ''' adds cartodb and akvo config to context '''
     def get_context_data(self, **kwargs):
         context = super(ContextMixin, self).get_context_data(**kwargs)
-        
+        context['logos'] = Logo.objects.all()
         context['cartodb'] = get_object_or_404(CartoDb, pk=settings.CARTODB_ID)
         context['akvo'] = get_object_or_404(AkvoFlow, pk=settings.AKVOFLOW_ID)
         context['project'] = get_object_or_404(Project,pk=1)
-        context['logos'] = Logo.objects.all()
- 
+
         # get last measurement
         w = Waarneming.objects.all().order_by('-datum')
         context['laatste'] = w[0] if w else None
 
         # get layer number and date filter from query params
         if hasattr(self, 'request'):
-            context['layer'] = self.request.GET.get('layer', 1) # layer 0 = changes, layer 1 = measurements
+            context['layer'] = self.request.GET.get('layer', 0) # layer 1 = changes, layer 0 = measurements
             context['start'] = self.request.GET.get('start', None)
             context['stop'] = self.request.GET.get('stop', None)
-        
+            context['search'] = self.request.GET.get('search', None)
         return context
 
 from django.db.models import Count
@@ -84,7 +83,13 @@ class HomeView(ContextMixin,TemplateView):
     def get_context_data(self, **kwargs):
         context = super(HomeView, self).get_context_data(**kwargs)
         # build iterable for waarnemers with at least 1 measurement and sort descending by number of measurements
-        waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
+        if 'search' in self.request.GET:
+            term = self.request.GET['search']
+            waarnemers = Waarnemer.objects.filter(Q(achternaam__icontains=term) | Q(voornaam__icontains=term) | Q(meetpunt__displayname__contains=term))\
+                .annotate(wcount=Count('waarneming'))\
+                .filter(wcount__gt=0).order_by('-wcount')
+        else:
+            waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
         context['waarnemers'] = waarnemers
         context['maptype'] = 'ROADMAP'
         return context
@@ -97,10 +102,16 @@ class WaarnemerDetailView(ContextMixin,DetailView):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
         # get list of unique measuring locations where this waarnemer has taken measurments
-        mps = list(set([w.locatie for w in waarnemer.waarneming_set.all()]))
+        if 'search' in self.request.GET:
+            term = self.request.GET['search']
+            mps = [w.locatie for w in waarnemer.waarneming_set.filter(Q(locatie__name__icontains=term)|
+                                                                      Q(locatie__displayname__icontains=term))]
+        else:
+            mps = list(set([w.locatie for w in waarnemer.waarneming_set.all()]))
         def _dosort(w):
             laatste = w.laatste_waarneming()
             return laatste.datum if laatste else datetime.datetime.now(pytz.UTC)
+        mps = list(set(mps))
         mps.sort(key = _dosort, reverse = True)
         context['meetpunten'] = mps 
         return context
@@ -124,6 +135,21 @@ class UploadPhotoView(UpdateView):
     fields = ['photo',]
     template_name_suffix = '_photo_form'
 
+def MeetpuntFromCarto(request, id):
+    ''' Show meetpunt using cartodb id '''
+    for cartodb in CartoDb.objects.all():
+        sql = 'select * from {table} where cartodb_id={id}'.format(table=cartodb.datatable,id=id)
+        try:
+            result = json.loads(cartodb.runsql(sql).read())
+            row = result['rows'][0]
+            mp = row['meetpunt']
+            regio = row['regio']
+            mp = get_object_or_404(Meetpunt,name=mp,projectlocatie__name=regio)
+            return redirect('meetpunt-detail',mp.pk)
+        except:
+            pass
+        break
+    
 from .tasks import import_Akvo
 
 @login_required

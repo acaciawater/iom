@@ -19,7 +19,8 @@ from django.conf import settings
 from django.contrib import admin
 from iom.views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
     WaarnemingenToDict, UploadPhotoView,\
-    get_waarnemers, get_waarnemingen, get_meetpunten
+    get_waarnemers, get_waarnemingen, get_meetpunten, \
+    MeetpuntFromCarto
 
 urlpatterns = [
     url(r'^$',HomeView.as_view(),name='home'),
@@ -34,6 +35,7 @@ urlpatterns = [
     
     url(r'^waarnemingen/(?P<pk>\d+)$', WaarnemingenToDict),
     url(r'^meetpunt/(?P<pk>\d+)$',MeetpuntDetailView.as_view(),name='meetpunt-detail'),
+    url(r'^carto/(?P<id>\d+)$',MeetpuntFromCarto),
     url(r'^foto/(?P<pk>\d+)$',UploadPhotoView.as_view(),name='upload-photo'),
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^admin/', include(admin.site.urls)),
