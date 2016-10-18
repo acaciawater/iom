@@ -10,6 +10,7 @@ from django.utils.text import slugify
 from django.conf import settings
 from iom.models import Meetpunt
 from acacia.data.models import Chart
+from matplotlib.ticker import Locator
 
 logger = logging.getLogger(__name__)
 def distance(obj, pnt):
@@ -45,9 +46,21 @@ def zoek_tijdreeksen(target,tolerance=1.0):
     for mp in mps:
         series.extend(mp.series())
     return series
-
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.dates import MonthLocator, YearLocator, AutoDateLocator, AutoDateFormatter,\
+    DayLocator
+import datetime
+    
+
+def divide_timedelta(td1, td2):
+    divtdi = datetime.timedelta.__div__
+    if isinstance(td2, (int, long)):
+        return divtdi(td1, td2)
+    us1 = td1.microseconds + 1000000 * (td1.seconds + 86400 * td1.days)
+    us2 = td2.microseconds + 1000000 * (td2.seconds + 86400 * td2.days)
+    return us1 / us2 # this does integer division, use float(us1) / us2 for fp division
 
 def maak_meetpunt_thumbnail(meetpunt):
     
@@ -59,8 +72,13 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     meetpunt.chart_thumbnail.name = imagefile
     
+    matplotlib.rc('axes', labelsize=18)
+    matplotlib.rc('axes', titlesize=22)
+    matplotlib.rc('xtick', labelsize=20)
+    matplotlib.rc('ytick', labelsize=22)
+    
     plt.figure(figsize=(9,3))
-    options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
+    options = {'grid': False, 'legend': True} 
     # TODO: alle tijdreeksen laten zien rondom een meetpunt!
     mps = zoek_meetpunten(meetpunt.location, 1)
     for mp in mps:
@@ -71,6 +89,14 @@ def maak_meetpunt_thumbnail(meetpunt):
             ax=s.plot(**options)
             ax.set_ylabel('EC')
 
+    plt.locator_params(axis='y',nbins=2)
+    halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
+    x=[s.first_valid_index(),s.first_valid_index()+halfway,s.last_valid_index()]
+    plt.xticks(x, rotation = 'horizontal')
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label1.set_horizontalalignment('center')
+    ax.tick_params(axis='x',pad=20)
+   
     try:
         plt.savefig(imagepath)
     except:
