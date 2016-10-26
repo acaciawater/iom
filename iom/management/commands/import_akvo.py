@@ -6,7 +6,6 @@ Created on Aug 6, 2015
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 
-from optparse import make_option
 from django.contrib.gis.geos import Point
 from django.utils import timezone
 from django.conf import settings
@@ -20,6 +19,9 @@ from iom.models import AkvoFlow, CartoDb, Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
 
 logger = logging.getLogger(__name__)
+
+#default number of days back for API requests
+DAYSBACK = 7
 
 def maak_naam(parameter,diep):
     if diep and not diep.endswith('iep'):
@@ -62,7 +64,7 @@ def download_photo(url):
     except:
         return url
                 
-def importAkvoRegistration(api,akvo,projectlocatie,user):
+def importAkvoRegistration(api,akvo,projectlocatie,user,update):
     meetpunten=set()
     waarnemingen=set()
     surveyId = akvo.regform
@@ -70,7 +72,8 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
         logger.warning('No registration form for akvo configuration {}'.format(akvo))
         return meetpunten, waarnemingen 
     num_meetpunten = 0
-    update = akvo.last_update + datetime.timedelta(days=-1)
+    if update is None:
+        update = akvo.last_update + datetime.timedelta(days=-DAYSBACK)
     beginDate=as_timestamp(update)
     instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
     for key,instance in instances:
@@ -159,13 +162,14 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
 
     return meetpunten, waarnemingen
    
-def importAkvoMonitoring(api,akvo):
+def importAkvoMonitoring(api,akvo,update):
     meetpunten = set()
     waarnemingen = set()
     num_waarnemingen = 0
     num_replaced = 0
 
-    update = akvo.last_update + datetime.timedelta(days=-1)
+    if update is None:
+        update = akvo.last_update + datetime.timedelta(days=-DAYSBACK)
     beginDate=as_timestamp(update)
     for surveyId in [f.strip() for f in akvo.monforms.split(',')]:
         survey = api.get_survey(surveyId)
@@ -227,18 +231,26 @@ def importAkvoMonitoring(api,akvo):
 class Command(BaseCommand):
     args = ''
     help = 'Importeer metingen vanuit akvo flow'
-    option_list = BaseCommand.option_list + (
-            make_option('--project',
+    
+    def add_arguments(self, parser):
+        
+        parser.add_argument('-p','--project',
                 action='store',
                 dest = 'proj',
                 default = None,
-                help = 'id van project locatie'),
-            make_option('--user',
+                help = 'id van project locatie')
+        
+        parser.add_argument('-u','--user',
                 action='store',
                 dest = 'user',
                 default = 'akvo',
-                help = 'user name'),
-        )
+                help = 'user name')
+
+        parser.add_argument('-a','--all',
+                action='store_true',
+                dest = 'all',
+                default = False,
+                help = 'user name')
 
     def handle(self, *args, **options):
         
@@ -248,6 +260,10 @@ class Command(BaseCommand):
             locaties = ProjectLocatie.objects.filter(pk=pk)
         else:
             locaties = ProjectLocatie.objects.all()
+            
+        _all = options.get('all')
+        update = datetime.date(2000,1,1) if _all else None
+
         for locatie in locaties:
             cartodb = locatie.cartodb
             for akvo in locatie.akvoflow_set.all():
