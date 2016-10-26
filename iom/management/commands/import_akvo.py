@@ -62,13 +62,12 @@ def download_photo(url):
     except:
         return url
                 
-def importAkvoRegistration(api,akvo,projectlocatie,user):
+def importAkvoRegistration(api,akvo,projectlocatie,user,days):
     surveyId = akvo.regform
     meetpunten=set()
     waarnemingen=set()
     num_meetpunten = 0
-    update = akvo.last_update + datetime.timedelta(days=-1)
-    beginDate=as_timestamp(update)
+    beginDate=as_timestamp(akvo.last_update + datetime.timedelta(days=-days)) if days else None
     instances = api.get_registration_instances(surveyId,beginDate=beginDate).items()
 #    instances = api.get_registration_instances(surveyId).items()
     for key,instance in instances:
@@ -161,14 +160,13 @@ def importAkvoRegistration(api,akvo,projectlocatie,user):
 
     return meetpunten, waarnemingen
    
-def importAkvoMonitoring(api,akvo):
+def importAkvoMonitoring(api,akvo,days):
     meetpunten = set()
     waarnemingen = set()
     num_waarnemingen = 0
     num_replaced = 0
 
-    update = akvo.last_update + datetime.timedelta(days=-1)
-    beginDate=as_timestamp(update)
+    beginDate=as_timestamp(akvo.last_update + datetime.timedelta(days=-days)) if days else None
     for surveyId in [f.strip() for f in akvo.monforms.split(',')]:
         survey = api.get_survey(surveyId)
         instances,meta = api.get_survey_instances(surveyId=surveyId,beginDate=beginDate)
@@ -263,9 +261,9 @@ class Command(BaseCommand):
 
         try:
             logger.debug('Meetpuntgegevens ophalen')
-            m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=project,user=user)
+            m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=project,user=user,days=7)
             logger.debug('Waarnemingen ophalen')
-            m2,w2=importAkvoMonitoring(api, akvo)
+            m2,w2=importAkvoMonitoring(api, akvo,days=7)
             mp = m1|m2
             wn = w1|w2
             if mp:
