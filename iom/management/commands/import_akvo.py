@@ -248,6 +248,11 @@ class Command(BaseCommand):
                 dest = 'user',
                 default = 'akvo',
                 help = 'user name'),
+            make_option('--all',
+                action='store_true',
+                dest = 'all',
+                default = False,
+                help = 'request ALL data from FLOW'),
         )
 
     def handle(self, *args, **options):
@@ -259,11 +264,13 @@ class Command(BaseCommand):
         project = ProjectLocatie.objects.get(pk=options.get('proj'))
         user = User.objects.get(username=options.get('user'))
 
+        days = None if options.get('all') else 7
+        
         try:
             logger.debug('Meetpuntgegevens ophalen')
-            m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=project,user=user,days=7)
+            m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=project,user=user,days=days)
             logger.debug('Waarnemingen ophalen')
-            m2,w2=importAkvoMonitoring(api, akvo,days=7)
+            m2,w2=importAkvoMonitoring(api, akvo, days)
             mp = m1|m2
             wn = w1|w2
             if mp:
