@@ -60,11 +60,18 @@ def utf8(d):
     else:
         return {unicode(k).encode('utf-8'):unicode(v).encode('utf-8') for k,v in d.items()}
 
-def uuid():
+def uuid12():
     ''' akvo-like uuid used for identifiers (3 groups of 4 chars without l,o,i) '''
     import uuid
     uid = uuid.uuid4().hex[-12:].replace("l","w").replace("o","x").replace("i","y")
     return uid[0:4]+'-'+uid[4:8]+'-'+uid[8:12]
+
+def uuid():
+    import uuid
+    uid = uuid.uuid4()
+    return uid
+#     uid = hex(uuid.uuid4())
+#     return uid[0:4]+'-'+uid[4:8]+'-'+uid[8:12]+'-'+uid[12:16]
 
 class FlowAPI:
 
