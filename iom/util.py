@@ -10,6 +10,8 @@ from django.utils.text import slugify
 from django.conf import settings
 from iom.models import Meetpunt
 from acacia.data.models import Chart
+from django.core.exceptions import ObjectDoesNotExist
+from iom.akvo import uuid
 
 logger = logging.getLogger(__name__)
 def distance(obj, pnt):
@@ -60,22 +62,13 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     meetpunt.chart_thumbnail.name = imagefile
     
-#     matplotlib.rc('axes', labelsize=18)
-#     matplotlib.rc('axes', titlesize=24)
-#     matplotlib.rc('xtick', labelsize=12)
-#     matplotlib.rc('ytick', labelsize=12)
-    
     plt.figure(figsize=(9,3))
     options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
-    # TODO: alle tijdreeksen laten zien rondom een meetpunt!
     mps = zoek_meetpunten(meetpunt.location, 1)
     for mp in mps:
-        s = mp.get_series('EC')
-        if s:
+        for s in mp.series_set.all():
             s = s.to_pandas()
-            s.name = 'ondiep' if 'ndiep' in s.name else 'diep'
             ax=s.plot(**options)
-            ax.set_ylabel('EC')
 
     try:
         plt.savefig(imagepath)
@@ -101,9 +94,12 @@ def maak_meetpunt_grafiek(meetpunt,user):
         meetpunt.chart=chart
         meetpunt.save()
                                                              
-    series = zoek_tijdreeksen(meetpunt.location,1)
+    series = meetpunt.series_set.all()
+    chart.series.delete()
     for s in series:
-        pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
+        #pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
+        pos='l'
+        ax = 1
         cs, created = chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
         if s.type != cs.type:
             cs.type = s.type
@@ -154,6 +150,54 @@ def escape(string):
     ''' double single quotes '''
     return string.replace("'", "''")
 
+def importMeetpunt(meetlocatie,waarnemer):
+    ''' import meetlocatie as meetpunt '''
+    try:
+        meetpunt = meetlocatie.meetpunt
+        logger.debug('Meetpunt found: '+ unicode(meetpunt))
+    except ObjectDoesNotExist:
+        # create meetpunt using  existing meetlocatie
+        meetpunt = Meetpunt(meetlocatie_ptr_id = meetlocatie.pk,
+            identifier = uuid(),
+            displayname=meetlocatie.name,
+            device='default',
+            submitter=unicode(waarnemer),
+            waarnemer=waarnemer)
+        # copy meetlocatie properties to meetpunt 
+        meetpunt.__dict__.update(meetlocatie.__dict__)
+        meetpunt.save()
+        logger.debug('Meetpunt created: ' + unicode(meetpunt))
+    return meetpunt
+
+def importSeries(series,waarnemer):
+    ''' import timeseries as meetpunt/waarnemingen '''
+    meetpunt = importMeetpunt(series.meetlocatie(), waarnemer)
+    device = 'default'
+    unit = series.unit
+    try:
+        name = series.parameter.name
+    except:
+        name = series.name
+    numCreated = 0
+    for dp in series.datapoints.all():
+        try:
+            w = meetpunt.waarneming_set.get(naam=name, waarnemer=waarnemer, datum=dp.date)
+            if w.waarde != dp.value:
+                w.waarde = dp.pvalue
+                w.save()
+        except:
+            w = meetpunt.waarneming_set.create(naam=name, waarnemer=waarnemer, datum=dp.date, waarde=dp.value, device=device, eenheid=unit)
+            numCreated += 1
+    return numCreated
+
+
+# from models import Waarnemer
+# from acacia.data.models import Series
+# 
+# w = Waarnemer.objects.get(achternaam='Test')
+# s = Series.objects.get(pk=2823)
+# importSeries(s,w)
+        
 def updateCartodb(cartodb, mps):
     for m in mps:
         p = m.location
@@ -284,7 +328,7 @@ def exportCartodb2(cartodb, waarnemingen, table = None):
             cartodb.runsql(sql)
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
-            
+                
 def processTriggers(mps):
     
     for mp in mps:
