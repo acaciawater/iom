@@ -11,8 +11,8 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.db.models import Q
-from .models import Waarnemer, Meetpunt, Waarneming, CartoDb, AkvoFlow, Waarneming, Logo
-from acacia.data.models import Project
+from models import Waarnemer, Meetpunt, Waarneming, CartoDb, AkvoFlow, Waarneming, Logo
+from acacia.data.models import Project, Datasource
 import json
 import pandas as pd
 import locale
@@ -91,7 +91,16 @@ class HomeView(ContextMixin,TemplateView):
         else:
             waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
         context['waarnemers'] = waarnemers
+        context['sources'] = Datasource.objects.all()
         context['maptype'] = 'ROADMAP'
+        return context
+
+class ExternalSourcesView(HomeView):
+    template_name = 'external.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super(ExternalSourcesView, self).get_context_data(**kwargs)
+        context['sources'] = Datasource.objects.all()
         return context
 
 class WaarnemerDetailView(ContextMixin,DetailView):

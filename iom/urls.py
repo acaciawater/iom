@@ -20,11 +20,12 @@ from django.contrib import admin
 from iom.views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
     WaarnemingenToDict, UploadPhotoView,\
     get_waarnemers, get_waarnemingen, get_meetpunten, \
-    MeetpuntFromCarto
+    MeetpuntFromCarto, ExternalSourcesView
 
 urlpatterns = [
     url(r'^$',HomeView.as_view(),name='home'),
     url(r'^home$',HomeView.as_view(),name='home'),
+    url(r'^extern$',ExternalSourcesView.as_view(),name='extern'),
     url(r'^akvo$','iom.views.importAkvo',name='akvo'),
     url(r'^waarnemer/(?P<pk>\d+)$',WaarnemerDetailView.as_view(),name='waarnemer-detail'),
 
