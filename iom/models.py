@@ -121,9 +121,9 @@ class Alias(models.Model):
         verbose_name_plural = 'Aliassen'
         
 class Meetpunt(MeetLocatie):
-    from akvo import uuid
+    import uuid
     # Akvo flow meetpunt gegevens
-    identifier=models.CharField(max_length=50,default=uuid())
+    identifier=models.CharField(max_length=50,default=uuid.uuid4)
     displayname = models.CharField(max_length=100)
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
@@ -168,7 +168,7 @@ class Meetpunt(MeetLocatie):
     photo.allow_tags=True
 
     def get_events(self):
-        return [e for s in self.series() for e in s.event_set.all() ]
+        return [e for s in self.series_set.all() for e in s.event_set.all() ]
         
 class Waarneming(models.Model):
     naam = models.CharField(max_length=100)
