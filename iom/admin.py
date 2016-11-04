@@ -7,18 +7,20 @@ from django.contrib import admin
 from django import forms
 from django.forms import Textarea
 from django.contrib.gis.db import models
-from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
-from acacia.data.models import DataPoint, ManualSeries, ProjectLocatie
+from models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
+from acacia.data.models import DataPoint, ManualSeries, ProjectLocatie,\
+    MeetLocatie, Series
 from acacia.data.events.models import Event
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb, exportCartodb2
+from util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb, exportCartodb2
 
 import re
 from iom.models import Waarneming, Alias, Logo, RegisteredUser
 from iom import util
+from util import importSeries, importMeetpunt
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -210,3 +212,59 @@ class RegisteredUserAdmin(admin.ModelAdmin):
 @admin.register(Phone)
 class PhoneAdmin(admin.ModelAdmin):
     list_display = ('device_id','last_contact', 'latitude', 'longitude')
+
+def importWaarnemingenAction(modeladmin, request, queryset):
+    user = request.user
+    try:
+        alias = Alias.objects.get(alias=user.get_username())
+    except:
+        alias = Alias.objects.create(alias=user.get_username(),
+                                     waarnemer = Waarnemer.objects.create(achternaam=user.last_name or user.get_username(), voornaam=request.user.first_name, email = user.email))
+    waarnemer = alias.waarnemer
+    for obj in queryset:
+        if isinstance(obj, MeetLocatie):
+            series = obj.series_set.all()
+        elif isinstance(obj,Datasource):
+            series = obj.getseries()
+        elif isinstance(obj,Series):
+            series = [obj]
+        for s in series:
+            importSeries(s,waarnemer)
+importWaarnemingenAction.short_description = 'importeer waarnemingen van geselecteerde onderdelen'
+
+def importMeetpuntenAction(modeladmin, request, queryset):
+    user = request.user
+    try:
+        alias = Alias.objects.get(alias=user.get_username())
+    except:
+        alias = Alias.objects.create(alias=user.get_username(),
+                                     waarnemer = Waarnemer.objects.create(achternaam=user.last_name or user.get_username(), voornaam=request.user.first_name, email = user.email))
+    waarnemer = alias.waarnemer
+    for obj in queryset:
+        if isinstance(obj,Datasource):
+            locs = obj.locations.all()
+            for loc in locs:
+                importMeetpunt(loc,waarnemer)
+        elif isinstance(obj,Series):
+            loc = obj.meetlocatie()
+            importMeetpunt(loc,waarnemer)            
+        elif isinstance(obj,MeetLocatie):
+            importMeetpunt(obj,waarnemer)            
+importMeetpuntenAction.short_description = 'importeer meetpunten van geselecteerde onderdelen'
+
+# Add custom action to datasource admin page
+from acacia.data.models import Datasource, MeetLocatie 
+from acacia.data.admin import DatasourceAdmin, MeetLocatieAdmin 
+class MyDatasourceAdmin(DatasourceAdmin):
+    def __init__(self, model, admin_site):
+        super(MyDatasourceAdmin,self).__init__(model,admin_site)
+        self.actions.extend([importWaarnemingenAction,importMeetpuntenAction])
+admin.site.unregister(Datasource)
+admin.site.register(Datasource, MyDatasourceAdmin)
+
+class MyMeetLocatieAdmin(MeetLocatieAdmin):
+    def __init__(self, model, admin_site):
+        super(MyMeetLocatieAdmin,self).__init__(model,admin_site)
+        self.actions.extend([importWaarnemingenAction,importMeetpuntenAction])
+admin.site.unregister(MeetLocatie)
+admin.site.register(MeetLocatie, MyMeetLocatieAdmin)
