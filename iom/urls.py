@@ -17,16 +17,16 @@ from django.conf.urls import include, url, patterns
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
-from iom.views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
+from views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
     WaarnemingenToDict, UploadPhotoView,\
     get_waarnemers, get_waarnemingen, get_meetpunten, \
-    MeetpuntFromCarto, ExternalSourcesView
+    MeetpuntFromCarto, ExternalSourcesView, DatasourceDetailView
 
 urlpatterns = [
     url(r'^$',HomeView.as_view(),name='home'),
     url(r'^home$',HomeView.as_view(),name='home'),
     url(r'^extern$',ExternalSourcesView.as_view(),name='extern'),
-    url(r'^akvo$','iom.views.importAkvo',name='akvo'),
+    #url(r'^akvo$','iom.views.importAkvo',name='akvo'),
     url(r'^waarnemer/(?P<pk>\d+)$',WaarnemerDetailView.as_view(),name='waarnemer-detail'),
 
     url(r'^get/series/(?P<pk>\d+)/$', 'acacia.data.views.SeriesToDict'),
@@ -36,6 +36,7 @@ urlpatterns = [
     
     url(r'^waarnemingen/(?P<pk>\d+)$', WaarnemingenToDict),
     url(r'^meetpunt/(?P<pk>\d+)$',MeetpuntDetailView.as_view(),name='meetpunt-detail'),
+    url(r'^datasource/(?P<pk>\d+)$',DatasourceDetailView.as_view(),name='datasource-detail'),
     url(r'^carto/(?P<id>\d+)$',MeetpuntFromCarto),
     url(r'^foto/(?P<pk>\d+)$',UploadPhotoView.as_view(),name='upload-photo'),
     url(r'^grappelli/', include('grappelli.urls')),
