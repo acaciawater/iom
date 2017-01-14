@@ -8,10 +8,10 @@ Created on Sep 4, 2015
 import os,math,time,logging
 from django.utils.text import slugify
 from django.conf import settings
-from iom.models import Meetpunt
+from models import Meetpunt
 from acacia.data.models import Chart
 from django.core.exceptions import ObjectDoesNotExist
-from iom.akvo import uuid
+from akvo import uuid
 
 logger = logging.getLogger(__name__)
 def distance(obj, pnt):
@@ -95,7 +95,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
         meetpunt.save()
                                                              
     series = meetpunt.series_set.all()
-    chart.series.delete()
+    #chart.series.delete()
     for s in series:
         #pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
         pos='l'
