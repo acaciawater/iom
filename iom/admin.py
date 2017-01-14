@@ -15,12 +15,11 @@ from acacia.data.events.models import Event
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb, exportCartodb2
+from util import maak_meetpunt_grafiek, zoek_tijdreeksen
 
 import re
-from iom.models import Waarneming, Alias, Logo, RegisteredUser
-from iom import util
-from util import importSeries, importMeetpunt
+from models import Alias, Logo, RegisteredUser
+import util
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -229,7 +228,7 @@ def importWaarnemingenAction(modeladmin, request, queryset):
         elif isinstance(obj,Series):
             series = [obj]
         for s in series:
-            importSeries(s,waarnemer)
+            util.importSeries(s,waarnemer)
 importWaarnemingenAction.short_description = 'importeer waarnemingen van geselecteerde onderdelen'
 
 def importMeetpuntenAction(modeladmin, request, queryset):
@@ -244,12 +243,12 @@ def importMeetpuntenAction(modeladmin, request, queryset):
         if isinstance(obj,Datasource):
             locs = obj.locations.all()
             for loc in locs:
-                importMeetpunt(loc,waarnemer)
+                util.importMeetpunt(loc,waarnemer)
         elif isinstance(obj,Series):
             loc = obj.meetlocatie()
-            importMeetpunt(loc,waarnemer)            
+            util.importMeetpunt(loc,waarnemer)            
         elif isinstance(obj,MeetLocatie):
-            importMeetpunt(obj,waarnemer)            
+            util.importMeetpunt(obj,waarnemer)            
 importMeetpuntenAction.short_description = 'importeer meetpunten van geselecteerde onderdelen'
 
 # Add custom action to datasource admin page
