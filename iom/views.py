@@ -113,15 +113,30 @@ class WaarnemerDetailView(ContextMixin,DetailView):
         # get list of unique measuring locations where this waarnemer has taken measurments
         if 'search' in self.request.GET:
             term = self.request.GET['search']
-            mps = [w.locatie for w in waarnemer.waarneming_set.filter(Q(locatie__name__icontains=term)|
-                                                                      Q(locatie__displayname__icontains=term))]
+            mps = list(set([w.locatie for w in waarnemer.waarneming_set.filter(Q(locatie__name__icontains=term)|
+                                                                      Q(locatie__displayname__icontains=term))]))
         else:
             mps = list(set([w.locatie for w in waarnemer.waarneming_set.all()]))
         def _dosort(w):
             laatste = w.laatste_waarneming()
             return laatste.datum if laatste else datetime.datetime.now(pytz.UTC)
-        mps = list(set(mps))
         mps.sort(key = _dosort, reverse = True)
+        context['meetpunten'] = mps 
+        return context
+
+class DatasourceDetailView(ContextMixin,DetailView):
+    template_name = 'external-detail.html'
+    model = Datasource    
+
+    def get_context_data(self, **kwargs):
+        context = ContextMixin.get_context_data(self, **kwargs)
+        source = self.get_object();
+        # get list of unique measuring locations
+        if 'search' in self.request.GET:
+            term = self.request.GET['search']
+            mps = [loc.meetpunt for loc in source.locations.filter(Q(name__icontains=term) | Q(description__icontains=term)) ]
+        else:
+            mps = [loc.meetpunt for loc in source.locations.all()]
         context['meetpunten'] = mps 
         return context
 
@@ -159,13 +174,13 @@ def MeetpuntFromCarto(request, id):
             pass
         break
     
-from .tasks import import_Akvo
-
-@login_required
-def importAkvo(request):
-    nextpage = request.GET['next']
-    import_Akvo(request.user.username)
-    return redirect(nextpage)
+# from .tasks import import_Akvo
+# 
+# @login_required
+# def importAkvo(request):
+#     nextpage = request.GET['next']
+#     import_Akvo(request.user.username)
+#     return redirect(nextpage)
 
 def phones(request):
     pass
