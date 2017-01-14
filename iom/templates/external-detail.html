@@ -1,0 +1,38 @@
+{% extends 'waarnemer-detail.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% load iom_filters %}
+{% block createdone %}
+{% endblock createdone %}
+{% block list %}
+<div id="list" class = "list-group scroll">
+<a href="#" class="list-group-item active" title="Gegevensbron"><img class="persona" src="{% static "img/database_48.ico" %}"></img>Gegevensbron {{object}}<span title="Aantal waarnemingen" class="badge">{{object.waarneming_set.count}}</a>
+{% for m in meetpunten %}
+<div class="row">
+	<div class="col col-xs-9">
+		<a href="{% url 'meetpunt-detail' m.id %}?{{request.GET.urlencode}}" class="list-group-item" onmouseover="showMarker({{m.latlng}});" onmouseout="hideMarker();">{{m.name}}
+		<span class = "badge" title='Aantal waarnemingen'>{{m.aantal_waarnemingen|defaultif0:""}}</span><br/>
+		<div class='text-muted'><small>{{m.description|safe|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{m.laatste_waarneming.datum|date:"j M Y"|default:""}}</div></small></div>
+		</a>
+	</div>
+	<div class="col left col-xs-3">
+		{% if m.photo_url %}
+			<a href="{{m.photo_url}}"><img class="foto" src="{{m.photo_url}}"></img></a>
+		{% endif %}
+	</div> 
+</div>
+{% empty %}
+<div class="row">
+<div class="col-xs-12">
+<div class="bg-info text-center">
+{% if search %}
+<i>(Geen meetpunten gevonden voor zoekterm "{{search}}")</i>
+{% else %}
+<i>(Geen meetpunten gevonden)</i>
+{% endif %}
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+{% endblock list %}
