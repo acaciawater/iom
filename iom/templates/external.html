@@ -2,6 +2,23 @@
 {% load staticfiles %}
 {% load l10n %}
 {% load iom_filters %}
+{% block script %}
+{{ block.super }}
+{% localize off %}
+<script>
+function showDatasource(did) {
+ 	var layer = isSublayerVisible(theLayer,'metingen')? 0:1;
+ 	var url = "datasource/" + did + "?layer=" + layer;
+ 	if (theStart) {
+ 		var start = theStart.format("MM-DD-YYYY");
+ 		url += "&start="+start;
+ 	}
+ 	window.location.href=url;
+ 	return false;
+}
+</script>
+{% endlocalize %}
+{% endblock script %}
 {% block list %}
 <div id="listwrapper">
  <div id="list" class="panel-group">
@@ -28,10 +45,10 @@
     </div>
     <div id="collapse2" class="panel-collapse collapse">
 		{% for ds in sources %}
-		<div class="list-group-item">{{ds}}
-		<span class = "badge badge-info" title='Aantal meetpunten'>{{ds.locations.count|defaultif0:""}}</span><br/>
+		<a href="{% url 'datasource-detail' ds.id %}?{{request.GET.urlencode}}" onclick="return showDatasource({{ds.id}});" class="list-group-item">{{ds}}
+		<span class = "badge badge-info" title='Aantal meetpunten'>{{ds.locations.count|defaultif0:""}}</span>
 		<div class='text-muted'><small>{{ds.description|safe|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{ds.stop|date:"j M Y"|default:""}}</div></small></div>
-		</div>
+		</a>
 		{% endfor %}
     </div>
   </div>
