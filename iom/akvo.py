@@ -116,14 +116,17 @@ class FlowAPI:
     def base_url(self):
         return self.instance + self.api
     
-    def format_url(self, resource, **query_params):
+    def format_url(self, resource, **kwargs):
         url = self.base_url()
         if not url.endswith('/'):
             url += '/'
         url += resource
-        if query_params:
+        empties = [k for k,v in kwargs.iteritems() if v is None]
+        for k in empties:
+            del kwargs[k]
+        if kwargs:
             url += '?'
-            url += urllib.urlencode(query_params)
+            url += urllib.urlencode(kwargs)
         return url
     
     def get_devices(self):
