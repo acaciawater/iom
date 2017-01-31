@@ -24,6 +24,11 @@ body, html {height: 100%;}
 #map {float:left;}
 #pano {float:right;}
 
+.center {
+    text-align: center;
+    margin-top: 200px;
+}
+
 .foto:hover {
   position: absolute;
   right: 0px;
@@ -49,16 +54,12 @@ function initMap() {
         mapTypeId: google.maps.MapTypeId.{{maptype}}
     });
     var marker = new google.maps.Marker({map: map, position: pos, title: "{{object.name}}" });
-//     var contentString = {{content|safe}};
-// 	var infowindow = new google.maps.InfoWindow({content: contentString});
-// 	google.maps.event.addListener(marker, 'click', function() {
-//     	infowindow.open(map,marker);
-//   	});
     var pano = new google.maps.StreetViewPanorama(
 	    document.getElementById('pano'), {
 	      position: pos,
     });
-    map.setStreetView(pano);
+    if (pano.getStatus() == google.maps.StreetViewStatus.OK)
+    	map.setStreetView(pano);
 }
 $(function(){initMap();});
 </script>
@@ -70,7 +71,7 @@ $(function(){initMap();});
 <div class = "col-md-8 halfheight">
 <div class = "row row-fluid fullheight">
 <div id="map">Kaart</div>
-<div id="pano">Pano</div>
+<div id="pano"><div class="center">Geen streetview beschikbaar</div></div>
 </div>
 <div class = "row row-fluid fullheight"><div id="chart"><iframe class="fullheight fullwidth" src="{{object.chart_url}}" marginwidth="0" seamless="seamless" frameborder="0"></iframe></div></div>
 </div>
