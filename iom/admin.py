@@ -20,6 +20,7 @@ from util import maak_meetpunt_grafiek, zoek_tijdreeksen
 import re
 from models import Alias, Logo, RegisteredUser
 import util
+from django.shortcuts import get_object_or_404
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -44,6 +45,18 @@ class SeriesInline(admin.StackedInline):
     inlines = (DataPointInline,)
     verbose_name = 'Tijdreeks'
     verbose_name_plural = 'Tijdreeksen'
+
+def meetpunt_elevation_from_ahn(modeladmin, request, queryset):
+    from acacia.ahn.models import AHN
+    from django.contrib.gis.geos import Point
+    ahn = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    for mp in queryset:
+        x = mp.location.x
+        y = mp.location.y
+        z = ahn.get_elevation(x,y)
+        mp.location = Point(x,y,z,srid=28992)
+        mp.save()
+meetpunt_elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
 
 def maak_grafiek(modeladmin, request, queryset):
     for m in queryset:
@@ -104,7 +117,7 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 @admin.register(Meetpunt)
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
-    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten]
+    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
     list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
