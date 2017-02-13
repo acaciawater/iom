@@ -128,6 +128,7 @@ class Meetpunt(MeetLocatie):
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
     photo_url=models.CharField(max_length=200,null=True,blank=True)
+    ahn = models.FloatField(null=True,blank=True)
     #photo_orient = models.IntegerField(default=1) # exif orientation
     waarnemer=models.ForeignKey(Waarnemer)
     chart_thumbnail = models.ImageField(upload_to='thumbnails/charts', blank=True, null=True, verbose_name='voorbeeld', help_text='Grafiek in popup op cartodb kaartje')
@@ -145,6 +146,11 @@ class Meetpunt(MeetLocatie):
     def latlng(self):
         p = self.latlon()
         return [p.y,p.x]
+    
+    def elevation(self):
+        return '%.1f' % self.location.z
+    
+    elevation.short_description = 'AHN3'
     
     class Meta:        
         verbose_name_plural = 'Meetpunten'

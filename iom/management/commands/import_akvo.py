@@ -90,7 +90,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
         num_meetpunten += 1
         try:
             lat,lon,elev,code = geoloc.split('|')
-            location = Point(float(lon),float(lat),0,srid=4326)
+            location = Point(float(lon),float(lat),float(elev),srid=4326)
             location.transform(28992)
         except:
             logger.error('Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
@@ -126,7 +126,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
                 name = '{} ({})'.format(meetName, dup+1) 
                 continue
         if not meetpunt:
-            raise Exception('Te veel dubbele meetopunten met naam {name}'.format(name=meetName))
+            raise Exception('Te veel dubbele meetpunten met naam {name}'.format(name=meetName))
 
         if created:
             logger.info('Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=meetName,name=unicode(waarnemer)))

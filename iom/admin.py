@@ -54,7 +54,7 @@ def meetpunt_elevation_from_ahn(modeladmin, request, queryset):
         x = mp.location.x
         y = mp.location.y
         z = ahn.get_elevation(x,y)
-        mp.location = Point(x,y,z,srid=28992)
+        mp.ahn = Point(x,y,z,srid=28992)
         mp.save()
 meetpunt_elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
 
@@ -118,7 +118,7 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
     actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
-    list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
+    list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'ahn', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
     search_fields = ('name', 'waarnemer__achternaam', )
