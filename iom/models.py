@@ -128,7 +128,7 @@ class Meetpunt(MeetLocatie):
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
     photo_url=models.CharField(max_length=200,null=True,blank=True)
-    ahn = models.FloatField(null=True,blank=True)
+    ahn = models.DecimalField(null=True,blank=True,decimal_places=1,max_digits=10)
     #photo_orient = models.IntegerField(default=1) # exif orientation
     waarnemer=models.ForeignKey(Waarnemer)
     chart_thumbnail = models.ImageField(upload_to='thumbnails/charts', blank=True, null=True, verbose_name='voorbeeld', help_text='Grafiek in popup op cartodb kaartje')

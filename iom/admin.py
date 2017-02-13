@@ -53,8 +53,7 @@ def meetpunt_elevation_from_ahn(modeladmin, request, queryset):
     for mp in queryset:
         x = mp.location.x
         y = mp.location.y
-        z = ahn.get_elevation(x,y)
-        mp.ahn = Point(x,y,z,srid=28992)
+        mp.ahn = ahn.get_elevation(x,y)
         mp.save()
 meetpunt_elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
 
