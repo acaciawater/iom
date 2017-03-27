@@ -122,7 +122,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
                     'description': omschrijving})
                 break
             except Exception as e:
-                logger.error('Dubbel meetpunt {mname} voor waarnemer {wname}'.format(mname=name, wname=unicode(waarnemer)))
+                logger.error('Dubbel meetpunt {mname} voor waarnemer {wname}. Error={error}'.format(mname=name, wname=unicode(waarnemer), error=e))
                 name = '{} ({})'.format(meetName, dup+1) 
                 continue
         if not meetpunt:
@@ -278,7 +278,7 @@ class Command(BaseCommand):
                         logger.info('Grafieken aanpassen')
                         util.updateSeries(mp, user)
                         #logger.info('Cartodb actualiseren')
-                        #util.exportCartodb(cartodb, mp)
+                        util.exportCartodb(cartodb, mp)
                     akvo.last_update = timezone.now()
                     akvo.save()        
                 except Exception as e:
