@@ -85,11 +85,11 @@ def update_cdb_waarnemers(modeladmin, request, queryset):
 update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren voor meetpunten van geselecteerde waarnemers'
 
 def export_cdb_waarnemingen(modeladmin, request, queryset):
-    util.exportCartodb2(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+    util.exportCartodb2(CartoDb.objects.get(pk=1), queryset)
 export_cdb_waarnemingen.short_description = 'geselecteerde waarnemingen exporteren naar cartodb'
 
 def export_cdb_meetpunten(modeladmin, request, queryset):
-    util.exportCartodb(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+    util.exportCartodb(CartoDb.objects.get(pk=1), queryset)
 export_cdb_meetpunten.short_description = 'geselecteerde meetpunten exporteren naar cartodb'
 
 class EventInline(admin.TabularInline):
