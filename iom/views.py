@@ -54,6 +54,20 @@ def WaarnemingenToDict(request, pk):
     dct.sort(key=lambda x: x['date'],reverse=True)
     j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
     return HttpResponse(j, content_type='application/json')
+
+def DatapointsToDict(request, pk):
+    ''' dict for use in external detail view '''
+    tz = timezone.get_current_timezone()
+    locale.setlocale(locale.LC_ALL,'nl_NL.utf8')
+    
+    mp = get_object_or_404(Meetpunt,pk=pk)
+    dct = []
+    for s in mp.series_set.all():
+        for p in s.datapoints.all():
+            dct.append({'date': p.date, 'EC': p.value, 'unit': s.unit})
+    dct.sort(key=lambda x: x['date'],reverse=True)
+    j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
+    return HttpResponse(j, content_type='application/json')
     
 class ContextMixin(object):
     def get_context_data(self, **kwargs):
@@ -137,7 +151,11 @@ class DatasourceDetailView(ContextMixin,DetailView):
             mps = [loc.meetpunt for loc in source.locations.filter(Q(name__icontains=term) | Q(description__icontains=term)) ]
         else:
             mps = [loc.meetpunt for loc in source.locations.all()]
-        context['meetpunten'] = mps 
+        
+        for m in mps:
+            m.laatste = m.datum_laatste_waarneming() or datetime.datetime(1900,1,1,1,0,0,tzinfo=pytz.utc)
+            
+        context['meetpunten'] = sorted(mps, key=lambda x: x.laatste,reverse=True)
         return context
 
 class MeetpuntDetailView(ContextMixin,DetailView):
@@ -153,7 +171,10 @@ class MeetpuntDetailView(ContextMixin,DetailView):
         context['maptype'] = 'SATELLITE'
         context['apikey'] = settings.GOOGLE_MAPS_API_KEY
         return context
-    
+
+class ExternalSeriesView(MeetpuntDetailView):
+    template_name = 'external-grafiek.html'
+
 class UploadPhotoView(UpdateView):
     model = Meetpunt
     fields = ['photo',]

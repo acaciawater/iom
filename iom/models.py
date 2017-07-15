@@ -160,7 +160,12 @@ class Meetpunt(MeetLocatie):
         return series[0] if len(series)>0 else None
 
     def aantal_waarnemingen(self):
-        return self.waarneming_set.count()
+        return sum([s.aantal() for s in self.series()])
+        #return self.waarneming_set.count()
+    
+    def datum_laatste_waarneming(self):
+        tots = [s.tot() for s in self.series() if s.tot()]
+        return max(tots) if tots else None
     
     def laatste_waarneming(self):
         try:

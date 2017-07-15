@@ -68,7 +68,8 @@ def maak_meetpunt_thumbnail(meetpunt):
     for mp in mps:
         for s in mp.series_set.all():
             s = s.to_pandas()
-            ax=s.plot(**options)
+            if not s.empty():
+                s.plot(**options)
 
     try:
         plt.savefig(imagepath)
@@ -106,7 +107,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
             cs.save()
     chart.save()
     
-    maak_meetpunt_thumbnail(meetpunt)
+    #maak_meetpunt_thumbnail(meetpunt)
     
 def updateSeries(mps, user):    
     '''update timeseries using meetpunten in  mps'''
@@ -115,7 +116,7 @@ def updateSeries(mps, user):
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
             waarde = w.waarde
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'mS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'µS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=unicode(mp)))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
