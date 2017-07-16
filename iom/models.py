@@ -6,7 +6,7 @@ Created on Jun 14, 2015
 from django.db import models
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
-from acacia.data.models import MeetLocatie, Chart
+from acacia.data.models import MeetLocatie, Chart, ProjectLocatie
 
 from django.contrib.gis.db import models as geo
 
@@ -77,7 +77,10 @@ class Waarnemer(models.Model):
     def __unicode__(self):
         s = ''
         if self.initialen and len(self.initialen) > 0:
-            s = self.initialen + ' '
+            s = self.initialen
+            if s[-1] != '.':
+                s += '.'
+            s += ' '
         if self.tussenvoegsel and len(self.tussenvoegsel) > 0:
             s += self.tussenvoegsel + ' '
         return s + self.achternaam
@@ -94,17 +97,18 @@ class Waarnemer(models.Model):
         return self.meetpunt_set.count()
     
     def aantal_waarnemingen(self):
-        w = sum([m.aantal_waarnemingen() for m in self.meetpunt_set.all()])
-        return w
+        return self.waarneming_set.count()
     
     def laatste_waarneming(self):
         try:
-            laatste = [m.laatste_waarneming() for m in self.meetpunt_set.all() if m]
-            laatste.sort(key = lambda x: x.datum)
-            return laatste[-1]
+            return self.waarneming_set.latest('datum')
         except:
             return None
 
+    def projectlocaties(self):
+        # alle projectlocaties waar deze waar=nemenr gemeten heeft
+        return ','.join(set([mp.projectlocatie.name for mp in self.meetpunt_set.all()]))
+    
 class Alias(models.Model):        
     ''' alias voor Waarnemer (wordt gebruikt in Akvo Flow) '''
     alias = models.CharField(max_length=50)
@@ -117,12 +121,14 @@ class Alias(models.Model):
         verbose_name_plural = 'Aliassen'
         
 class Meetpunt(MeetLocatie):
+    import uuid
     # Akvo flow meetpunt gegevens
-    identifier=models.CharField(max_length=50)
+    identifier=models.CharField(max_length=50,default=uuid.uuid4)
     displayname = models.CharField(max_length=100)
     submitter=models.CharField(max_length=50)
     device=models.CharField(max_length=50)
     photo_url=models.CharField(max_length=200,null=True,blank=True)
+    ahn = models.DecimalField(null=True,blank=True,decimal_places=1,max_digits=10)
     #photo_orient = models.IntegerField(default=1) # exif orientation
     waarnemer=models.ForeignKey(Waarnemer)
     chart_thumbnail = models.ImageField(upload_to='thumbnails/charts', blank=True, null=True, verbose_name='voorbeeld', help_text='Grafiek in popup op cartodb kaartje')
@@ -141,6 +147,11 @@ class Meetpunt(MeetLocatie):
         p = self.latlon()
         return [p.y,p.x]
     
+    def elevation(self):
+        return '%.1f' % self.location.z
+    
+    elevation.short_description = 'AHN3'
+    
     class Meta:        
         verbose_name_plural = 'Meetpunten'
                 
@@ -149,7 +160,12 @@ class Meetpunt(MeetLocatie):
         return series[0] if len(series)>0 else None
 
     def aantal_waarnemingen(self):
-        return self.waarneming_set.count()
+        return sum([s.aantal() for s in self.series()])
+        #return self.waarneming_set.count()
+    
+    def datum_laatste_waarneming(self):
+        tots = [s.tot() for s in self.series() if s.tot()]
+        return max(tots) if tots else None
     
     def laatste_waarneming(self):
         try:
@@ -163,7 +179,7 @@ class Meetpunt(MeetLocatie):
     photo.allow_tags=True
 
     def get_events(self):
-        return [e for s in self.series() for e in s.event_set.all() ]
+        return [e for s in self.series_set.all() for e in s.event_set.all() ]
         
 class Waarneming(models.Model):
     naam = models.CharField(max_length=100)
@@ -186,6 +202,7 @@ class Waarneming(models.Model):
         
 class AkvoFlow(models.Model):
     ''' Akvo Flow configuratie '''
+    projectlocatie = models.ForeignKey(ProjectLocatie)
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True, null=True)
     instance = models.CharField(max_length=100)
@@ -206,6 +223,7 @@ import urllib,urllib2
 
 class CartoDb(models.Model):
     ''' Cartodb configuratie '''
+    projectlocatie = models.OneToOneField(ProjectLocatie)
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(blank=True, null=True)
     url = models.CharField(max_length=100,verbose_name='Account')
@@ -213,7 +231,6 @@ class CartoDb(models.Model):
     key = models.CharField(max_length=100,verbose_name='API key')
     sql_url = models.CharField(max_length=100,verbose_name='SQL url',help_text='URL voor Cartodb SQL queries')
     datatable = models.CharField(max_length=50,verbose_name='tabelnaam') # notused
-    layer_sql = models.TextField(null=True,blank=True,verbose_name='Aangepaste SQL voor kaartlaag') # notused
 
     class Meta:
         verbose_name = 'Cartodb configuratie'        

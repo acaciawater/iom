@@ -1,0 +1,16 @@
+{% extends 'meetpunt-grafiek.html' %}
+{% block list %}
+<div id="list" class="list-group scroll">
+<a href="#" class="list-group-item active" title="Meetpunt">{{object.datasources.first.name}} - Meetpunt {{object.name}}<span title="Aantal waarnemingen" class="badge">{{object.aantal_waarnemingen}}</a>
+<table data-toggle="table" data-pagination=true data-page-size=12 data-url="/points/{{object.pk}}">
+<thead>
+<tr>
+<th data-field="date">Datum</th>
+<th data-field="EC">EC</th>
+<th data-field="unit">Eenheid</th>
+</tr>
+</thead>
+</table>
+</div>
+{% endblock list %}
+

@@ -55,26 +55,18 @@ class Command(BaseCommand):
                 dest = 'akvo',
                 default = 1,
                 help = 'id van Akvoflow configuratie'),
-            make_option('--cartodb',
-                action='store',
-                dest = 'cartodb',
-                default = 1,
-                help = 'id van Cartodb configuratie'),
         )
 
     def handle(self, *args, **options):
         
         akvo = AkvoFlow.objects.get(pk=options.get('akvo'))
         api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
-        #cartodb = CartoDb.objects.get(pk=options.get('cartodb'))
     
         try:
             logger.info('Telefoons ophalen')
             num = importPhones(api, akvo)
             logger.info('{num} telefoons gevonden'.format(num=num))
         
-#             logger.info('Cartodb actialiseren')
-#             updateCartodb(cartodb, mp)        
         except Exception as e:
             logger.exception('Probleem met importeren telefoons: %s',e)
         finally:

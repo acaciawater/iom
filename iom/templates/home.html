@@ -5,14 +5,23 @@
 {% block breadcrumbs %}{% endblock %}
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+<link rel="stylesheet" href="//libs.cartocdn.com/cartodb.js/v3/3.15/themes/css/cartodb.css" />
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+<link rel="stylesheet" href="/static/css/search.css" />
 <style>
 body, html {height: 100%;}
 .fullheight {height: 100%;}
 .fullwidth {width: 100%;}
 .wrapper {height: 100%;}
 .scroll {overflow-x: hidden; overflow-y: auto;}
-#map {width: 100%; height: 100%; padding-bottom: 20px;}
+#map, #listwrapper {width: 100%; height: 100%; padding-bottom: 20px;}
+
+#listwrapper {
+	overflow-y: auto;
+}
+.panel-heading {
+  padding: 1px 0px 1px 0px;
+}
 .vcenter {
     display: inline-block;
     vertical-align: middle;
@@ -20,11 +29,11 @@ body, html {height: 100%;}
     float: none;
 }
 .chart-ec {
-	width: 380px;
-	height: 120px;
-}     
-.cartodb-popup {
-	min-height: 200px;
+	width: 380px; 
+	height: 120px; 
+}
+.cartodb-popup-content-wrapper, .cartodb-popup-content {
+	min-width: 600px;
 }
 .persona {
 	height: 24px;
@@ -69,16 +78,57 @@ body, html {height: 100%;}
 	z-index:105
 }
 
+#removesearch {
+	cursor: pointer;
+}
+
+#dosearch {
+	cursor: default;
+}
+
 </style>
 {% endblock extrastyle %}
 {% block script %}
 {{ block.super }}
 {% localize off %}
-<script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
+<script src="//libs.cartocdn.com/cartodb.js/v3/3.15/cartodb.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
 <script>
 var theMap = null;
 var theLayer = null;
 var theStart = null;
+
+function getSublayerIndex(layer, name) {
+	var numLayers = layer.getSubLayerCount();
+	for(i=0;i<numLayers;i++) {
+		if (layer.layers[i].options.layer_name == name) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function getSublayerByName(layer, name) {
+	var index = getSublayerIndex(layer,name);
+	return index < 0? null : layer.getSubLayer(index);
+}
+
+function isSublayerVisible(layer, name) {
+	var index = getSublayerIndex(layer,name);
+	return index < 0 ? false: layer.layers[index].visible;
+}
+
+function showWaarnemer(wid) {
+ 	var layer = isSublayerVisible(theLayer,'metingen')? 0:1;
+ 	var url = "waarnemer/" + wid + "?layer=" + layer;
+ 	if (theStart) {
+ 		var start = theStart.format("MM-DD-YYYY");
+ 		url += "&start="+start;
+ 	}
+ 	window.location.href=url;
+ 	return false;
+}
 
 window.onload = function() {
   cartodb.createVis('map', '{{cartodb.viz}}')
@@ -88,10 +138,11 @@ window.onload = function() {
   		var numLayers = theLayer.getSubLayerCount();
   		{% block createdone %}
   		{% if layer %}
+  		    var names = ['metingen','veranderingen'];
 	  		var on = {{layer}};
-	  		var off = on?0:1;
-	  		theLayer.getSubLayer(on).show();
-	  		theLayer.getSubLayer(off).hide();
+	  		var off = on? 0: 1;
+	  		getSublayerByName(theLayer,names[on]).show();
+	  		getSublayerByName(theLayer,names[off]).hide();
 			{% if start %}
 				// modify where clause in sublayer sql query definitiions
 				var pattern = /datum > '\d+-\d+-\d+'/i;
@@ -108,13 +159,9 @@ window.onload = function() {
   		var e = document.getElementById("datepicker");
   		e.style.display = 'block';
   	});
-    $("#list").height($("#map").height());
+   $("#listwrapper").height($("#map").height());
 }
-</script>
-<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
-<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
-<script type="text/javascript">
+
 $(function() {
 	
 	function filter(start) {
@@ -174,22 +221,57 @@ $(function() {
         $('#datepicker span').html('');
   	  	filter("01-01-1970");
     });
+    
+    {% if search %}
+    	var searchBox = $('#search');
+    	searchBox.value ='{{search}}';
+    {% endif %}
 });
 
-function showWaarnemer(wid) {
- 	var url = "waarnemer/"+wid;
- 	var layer = theLayer.getSubLayer(0).visible? "0" : "1";
- 	url += "?layer=" + layer;
- 	if (theStart) {
- 		var start = theStart.format("MM-DD-YYYY");
- 		url += "&start="+start;
- 	}
- 	window.location.href=url;
- 	return false;
+function removeParam(parameter)
+{
+	var url=document.location.href;
+	var urlparts= url.split('?');
+
+	if (urlparts.length>=2)
+	{
+		var urlBase=urlparts.shift(); 
+		var queryString=urlparts.join("?"); 
+		
+		var prefix = encodeURIComponent(parameter)+'=';
+		var pars = queryString.split(/[&;]/g);
+		for (var i= pars.length; i-->0;)               
+		    if (pars[i].lastIndexOf(prefix, 0)!==-1)   
+		        pars.splice(i, 1);
+		url = urlBase+'?'+pars.join('&');
+		window.history.pushState('',document.title,url); // added this line to push the new url directly to url bar .
+	 }
+	 return url;
+}
+
+function removeSearch() {
+	var url = removeParam("search");
+	$("#searchbox").hide();
+	window.location.href = url;
 }
 
 </script>
 {% endlocalize %}
+{% endblock %}
+{% block navbar-right %}
+<div id="searchbox" class="pull-right">
+	<form class="navbar-form navbar-right" role="search">
+	<div class="input-group input-group-sm">
+ 		{% if search %}
+ 		<span id="removesearch" class="input-group-addon" onclick="removeSearch()" title="Zoekterm verwijderen"><i class="glyphicon glyphicon-remove" style="color:#d9534f"></i></span>
+ 		{% else %}
+ 		<span id="dosearch" class="input-group-addon"><i class="glyphicon glyphicon-search" style="color:#428bca"></i></span>
+ 		{% endif %}
+		<input type="text" class="form-control" placeholder="{{search|default:"Zoeken..."}}" name="search" id="search">
+	</div>
+	</form>
+</div>
+{{ block.super }}
 {% endblock %}
 {% block content %}
 <div class = "container-fluid fullheight">
@@ -212,9 +294,8 @@ function showWaarnemer(wid) {
 <div id="list" class = "list-group scroll">
 <a href="#" class="list-group-item active"><img class="persona" src="{% static "img/user_group_two-512.png" %}"></img>Waarnemers<span class="badge" title='Aantal waarnemers'>{{waarnemers|length}}</a>
 {% for w in waarnemers %}
-<a href="{% url 'waarnemer-detail' w.id %}" class="list-group-item">{{w}}
-<!-- <a href="" class="list-group-item" onclick="showWaarnemer({{w.id}});">{{w}} -->
-<span class = "badge" title='Aantal waarnemingen'>{{w.aantal_waarnemingen|defaultif0:""}}</span> <br/>
+<a href="{% url 'waarnemer-detail' w.id %}?{{request.GET.urlencode}}" onclick="return showWaarnemer({{w.id}});" class="list-group-item">{{w}}
+<span class = "badge" title='Aantal waarnemingen'>{{w.waarneming_set.count|defaultif0:""}}</span> <br/>
 <div class='text-muted'><small>{{w.organisatie|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{w.laatste_waarneming.datum|date:"j M Y"|default:""}}</div></small></div>
 </a>
 {% endfor %}

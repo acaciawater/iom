@@ -8,9 +8,10 @@ Created on Sep 4, 2015
 import os,math,time,logging
 from django.utils.text import slugify
 from django.conf import settings
-from iom.models import Meetpunt
+from models import Meetpunt
 from acacia.data.models import Chart
-from matplotlib.ticker import Locator
+from django.core.exceptions import ObjectDoesNotExist
+from akvo import uuid
 
 logger = logging.getLogger(__name__)
 def distance(obj, pnt):
@@ -46,6 +47,7 @@ def zoek_tijdreeksen(target,tolerance=1.0):
     for mp in mps:
         series.extend(mp.series())
     return series
+
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -78,16 +80,13 @@ def maak_meetpunt_thumbnail(meetpunt):
     matplotlib.rc('ytick', labelsize=22)
     
     plt.figure(figsize=(9,3))
-    options = {'grid': False, 'legend': True} 
-    # TODO: alle tijdreeksen laten zien rondom een meetpunt!
+    options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
     mps = zoek_meetpunten(meetpunt.location, 1)
     for mp in mps:
-        s = mp.get_series('EC')
-        if s:
-            s =s.to_pandas()
-            s.name = 'ondiep' if s.name.endswith('o') else 'diep'
-            ax=s.plot(**options)
-            ax.set_ylabel('EC')
+        for s in mp.series_set.all():
+            s = s.to_pandas()
+            if not s.empty():
+                s.plot(**options)
 
     plt.locator_params(axis='y',nbins=2)
     halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
@@ -121,16 +120,19 @@ def maak_meetpunt_grafiek(meetpunt,user):
         meetpunt.chart=chart
         meetpunt.save()
                                                              
-    series = zoek_tijdreeksen(meetpunt.location,1)
+    series = meetpunt.series_set.all()
+    #chart.series.delete()
     for s in series:
-        pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
+        #pos, ax = ('l', 1) if s.name.startswith('EC') else ('r', 2)
+        pos='l'
+        ax = 1
         cs, created = chart.series.get_or_create(series=s, defaults={'name': s.name, 'axis': ax, 'axislr': pos, 'type': s.type})
         if s.type != cs.type:
             cs.type = s.type
             cs.save()
     chart.save()
     
-    maak_meetpunt_thumbnail(meetpunt)
+    #maak_meetpunt_thumbnail(meetpunt)
     
 def updateSeries(mps, user):    
     '''update timeseries using meetpunten in  mps'''
@@ -139,7 +141,7 @@ def updateSeries(mps, user):
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
             waarde = w.waarde
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'mS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'µS/cm'})
             if created:
                 logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=unicode(mp)))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
@@ -174,6 +176,54 @@ def escape(string):
     ''' double single quotes '''
     return string.replace("'", "''")
 
+def importMeetpunt(meetlocatie,waarnemer):
+    ''' import meetlocatie as meetpunt '''
+    try:
+        meetpunt = meetlocatie.meetpunt
+        logger.debug('Meetpunt found: '+ unicode(meetpunt))
+    except ObjectDoesNotExist:
+        # create meetpunt using  existing meetlocatie
+        meetpunt = Meetpunt(meetlocatie_ptr_id = meetlocatie.pk,
+            identifier = uuid(),
+            displayname=meetlocatie.name,
+            device='default',
+            submitter=unicode(waarnemer),
+            waarnemer=waarnemer)
+        # copy meetlocatie properties to meetpunt 
+        meetpunt.__dict__.update(meetlocatie.__dict__)
+        meetpunt.save()
+        logger.debug('Meetpunt created: ' + unicode(meetpunt))
+    return meetpunt
+
+def importSeries(series,waarnemer):
+    ''' import timeseries as meetpunt/waarnemingen '''
+    meetpunt = importMeetpunt(series.meetlocatie(), waarnemer)
+    device = 'default'
+    unit = series.unit
+    try:
+        name = series.parameter.name
+    except:
+        name = series.name
+    numCreated = 0
+    for dp in series.datapoints.all():
+        try:
+            w = meetpunt.waarneming_set.get(naam=name, waarnemer=waarnemer, datum=dp.date)
+            if w.waarde != dp.value:
+                w.waarde = dp.pvalue
+                w.save()
+        except:
+            w = meetpunt.waarneming_set.create(naam=name, waarnemer=waarnemer, datum=dp.date, waarde=dp.value, device=device, eenheid=unit)
+            numCreated += 1
+    return numCreated
+
+
+# from models import Waarnemer
+# from acacia.data.models import Series
+# 
+# w = Waarnemer.objects.get(achternaam='Test')
+# s = Series.objects.get(pk=2823)
+# importSeries(s,w)
+        
 def updateCartodb(cartodb, mps):
     for m in mps:
         p = m.location
@@ -210,8 +260,9 @@ def updateCartodb(cartodb, mps):
 from itertools import groupby
 
 # this version replaces ALL measurements of a meetpunt
-def exportCartodb(cartodb, mps, table):
-
+def exportCartodb(cartodb, mps, table = None):
+    if not table:
+        table = cartodb.datatable
     for m in mps:
         print m
         
@@ -220,13 +271,13 @@ def exportCartodb(cartodb, mps, table):
             logger.warning('Geen waarnemingen voor meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             continue
 
-        project = m.project()
-        regio = project.name
+        regio = m.projectlocatie.name
         meetpunt = m.name.replace("'", "''")
         p = m.location
         p.transform(4326)
 
         logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
+        # TODO: add regio to where clause
         sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}'".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt)
         cartodb.runsql(sql)
 
@@ -262,13 +313,14 @@ def exportCartodb(cartodb, mps, table):
                 ok = cartodb.runsql(sql)
 
 # this version replaces only selected measurements
-def exportCartodb2(cartodb, waarnemingen, table):
+def exportCartodb2(cartodb, waarnemingen, table = None):
+    if not table:
+        table = cartodb.datatable
     # group waarnemingen by meetpunt
     group = groupby(waarnemingen,lambda w: w.locatie)
     for m,waarnemingen in group:
         print m
-        project = m.project()
-        regio = project.name
+        regio = m.projectlocatie.name
         p = m.location
         p.transform(4326)
         values = ''
@@ -297,11 +349,12 @@ def exportCartodb2(cartodb, waarnemingen, table):
             logger.debug('Actualiseren cartodb meetpunt {meetpunt}, waarnemer {waarnemer}'.format(meetpunt=m,waarnemer=m.waarnemer))
             datums = ','.join(['to_timestamp({})'.format(d) for d in dates])
             # delete all waarnemingen with matching meetpunt, waarnemer and date
+            # TODO: add region to where clause
             sql = "DELETE FROM {table} WHERE waarnemer='{waarnemer}' AND meetpunt='{meetpunt}' AND datum in ({dates})".format(table=table, waarnemer=unicode(m.waarnemer), meetpunt=meetpunt, dates=datums)
             cartodb.runsql(sql)
             sql = 'INSERT INTO {table} (the_geom,diepondiep,charturl,meetpunt,waarnemer,regio,datum,ec) VALUES '.format(table=table) + values
             cartodb.runsql(sql)
-            
+                
 def processTriggers(mps):
     
     for mp in mps:

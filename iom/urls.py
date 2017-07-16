@@ -17,14 +17,24 @@ from django.conf.urls import include, url, patterns
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
-from iom.views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
+from views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
     WaarnemingenToDict, UploadPhotoView,\
-    get_waarnemers, get_waarnemingen, get_meetpunten
+    get_waarnemers, get_waarnemingen, get_meetpunten, \
+    MeetpuntFromCarto, ExternalSourcesView, DatasourceDetailView,\
+    DatapointsToDict, ExternalSeriesView
+
+from tastypie.api import Api
+from api import WaarnemerResource, MeetpuntResource, WaarnemingResource
+v1 = Api(api_name='v1')
+v1.register(WaarnemerResource())
+v1.register(MeetpuntResource())
+v1.register(WaarnemingResource())
 
 urlpatterns = [
     url(r'^$',HomeView.as_view(),name='home'),
     url(r'^home$',HomeView.as_view(),name='home'),
-    url(r'^akvo$','iom.views.importAkvo',name='akvo'),
+    url(r'^extern$',ExternalSourcesView.as_view(),name='extern'),
+    #url(r'^akvo$','iom.views.importAkvo',name='akvo'),
     url(r'^waarnemer/(?P<pk>\d+)$',WaarnemerDetailView.as_view(),name='waarnemer-detail'),
 
     url(r'^get/series/(?P<pk>\d+)/$', 'acacia.data.views.SeriesToDict'),
@@ -33,13 +43,19 @@ urlpatterns = [
     url(r'^get/waarnemingen', get_waarnemingen),
     
     url(r'^waarnemingen/(?P<pk>\d+)$', WaarnemingenToDict),
+    url(r'^points/(?P<pk>\d+)$', DatapointsToDict, name='datapoints'),
     url(r'^meetpunt/(?P<pk>\d+)$',MeetpuntDetailView.as_view(),name='meetpunt-detail'),
+    url(r'^expo/(?P<pk>\d+)$',ExternalSeriesView.as_view(),name='external-series'), # series from external location
+    url(r'^datasource/(?P<pk>\d+)$',DatasourceDetailView.as_view(),name='datasource-detail'),
+    url(r'^carto/(?P<id>\d+)$',MeetpuntFromCarto),
     url(r'^foto/(?P<pk>\d+)$',UploadPhotoView.as_view(),name='upload-photo'),
     url(r'^grappelli/', include('grappelli.urls')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^accounts/', include('registration.backends.default.urls')),    
     url(r'^data/', include('acacia.data.urls',namespace='acacia')),
-    url(r'^event/', include('acacia.data.events.urls'))
+    url(r'^event/', include('acacia.data.events.urls')),
+    url(r'^api/', include(v1.urls)),
+    
 #    url(r'^nested_admin/', include('nested_admin.urls')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

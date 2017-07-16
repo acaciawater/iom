@@ -60,6 +60,17 @@ def utf8(d):
     else:
         return {unicode(k).encode('utf-8'):unicode(v).encode('utf-8') for k,v in d.items()}
 
+def uuid12():
+    ''' akvo-like uuid used for identifiers (3 groups of 4 chars without l,o,i) '''
+    import uuid
+    uid = uuid.uuid4().hex[:12].replace("l","w").replace("o","x").replace("i","y")
+    return uid[0:4]+'-'+uid[4:8]+'-'+uid[8:12]
+
+def uuid():
+    import uuid
+    uid = uuid.uuid4()
+    return uid
+
 class FlowAPI:
 
     def __init__(self,instance,key,secret):
@@ -105,14 +116,17 @@ class FlowAPI:
     def base_url(self):
         return self.instance + self.api
     
-    def format_url(self, resource, **query_params):
+    def format_url(self, resource, **kwargs):
         url = self.base_url()
         if not url.endswith('/'):
             url += '/'
         url += resource
-        if query_params:
+        empties = [k for k,v in kwargs.iteritems() if v is None]
+        for k in empties:
+            del kwargs[k]
+        if kwargs:
             url += '?'
-            url += urllib.urlencode(query_params)
+            url += urllib.urlencode(kwargs)
         return url
     
     def get_devices(self):

@@ -7,18 +7,20 @@ from django.contrib import admin
 from django import forms
 from django.forms import Textarea
 from django.contrib.gis.db import models
-from .models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
-from acacia.data.models import DataPoint, ManualSeries
+from models import UserProfile, Adres, Waarnemer, Meetpunt, Organisatie, AkvoFlow, CartoDb, Waarneming, Phone
+from acacia.data.models import DataPoint, ManualSeries, ProjectLocatie,\
+    MeetLocatie, Series
 from acacia.data.events.models import Event
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .util import maak_meetpunt_grafiek, zoek_tijdreeksen, exportCartodb, exportCartodb2
+from util import maak_meetpunt_grafiek, zoek_tijdreeksen
 
 import re
-from iom.models import Waarneming, Alias, Logo, RegisteredUser
-from iom import util
+from models import Alias, Logo, RegisteredUser
+import util
+from django.shortcuts import get_object_or_404
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -44,6 +46,17 @@ class SeriesInline(admin.StackedInline):
     verbose_name = 'Tijdreeks'
     verbose_name_plural = 'Tijdreeksen'
 
+def meetpunt_elevation_from_ahn(modeladmin, request, queryset):
+    from acacia.ahn.models import AHN
+    from django.contrib.gis.geos import Point
+    ahn = get_object_or_404(AHN,name='AHN3 0.5m DTM')
+    for mp in queryset:
+        x = mp.location.x
+        y = mp.location.y
+        mp.ahn = ahn.get_elevation(x,y)
+        mp.save()
+meetpunt_elevation_from_ahn.short_description = 'Bepaal NAP hoogte adhv AHN3'        
+
 def maak_grafiek(modeladmin, request, queryset):
     for m in queryset:
         maak_meetpunt_grafiek(m,request.user)
@@ -60,7 +73,7 @@ class WaarnemingInline(admin.TabularInline):
 
 def update_cdb_meetpunten(modeladmin, request, queryset):
     util.updateSeries(queryset, request.user)
-    util.updateCartodb(CartoDb.objects.get(pk=1), queryset)
+    util.exportCartodb(CartoDb.objects.get(pk=1), queryset)
 update_cdb_meetpunten.short_description = 'cartodb en tijdreeksen actualiseren met waarnemingen van geselecteerde meetpunten'
 
 def update_cdb_waarnemers(modeladmin, request, queryset):
@@ -72,11 +85,11 @@ def update_cdb_waarnemers(modeladmin, request, queryset):
 update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren voor meetpunten van geselecteerde waarnemers'
 
 def export_cdb_waarnemingen(modeladmin, request, queryset):
-    util.exportCartodb2(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+    util.exportCartodb2(CartoDb.objects.get(pk=1), queryset)
 export_cdb_waarnemingen.short_description = 'geselecteerde waarnemingen exporteren naar cartodb'
 
 def export_cdb_meetpunten(modeladmin, request, queryset):
-    util.exportCartodb(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+    util.exportCartodb(CartoDb.objects.get(pk=1), queryset)
 export_cdb_meetpunten.short_description = 'geselecteerde meetpunten exporteren naar cartodb'
 
 class EventInline(admin.TabularInline):
@@ -103,12 +116,12 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 @admin.register(Meetpunt)
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
-    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten]
-    list_display = ('identifier', 'name', 'waarnemer', 'displayname', 'description', 'aantal_waarnemingen', 'photo')
-    list_filter = ('waarnemer', )
+    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
+    list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'ahn', 'aantal_waarnemingen', 'photo')
+    list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
     search_fields = ('name', 'waarnemer__achternaam', )
-    fields = ('name', 'waarnemer', 'location', 'photo_url', 'chart_thumbnail', 'description',)
+    fields = ('name', 'waarnemer', 'projectlocatie', 'location', 'photo_url', 'chart_thumbnail', 'description',)
     formfield_overrides = {models.PointField:{'widget': Textarea}}
     
 class AdresForm(forms.ModelForm):
@@ -143,9 +156,23 @@ class AliasInline(admin.TabularInline):
 
 @admin.register(Waarnemer)
 class WaarnemerAdmin(admin.ModelAdmin):
+
+    class LocatieFilter(admin.SimpleListFilter):
+        title = 'locatie'
+        parameter_name = 'locatie'
+
+        def lookups(self, request, modeladmin):
+            return [(p.pk, p.name) for p in ProjectLocatie.objects.all()]
+
+        def queryset(self, request, queryset):
+#             if self.value() is not None:
+#                 mps = Meetpunt.objects.filter(waarnemer__in=queryset, projectlocatie=self.value)
+#                 return queryset.filter(meetpunt_set__projectlocatie__name = self.value())
+            return queryset
+    
     actions = [update_cdb_waarnemers,]        
-    list_display = ('achternaam', 'tussenvoegsel', 'voornaam', 'organisatie', 'aantal_meetpunten', 'aantal_waarnemingen')
-    list_filter = ('achternaam', 'organisatie', )
+    list_display = ('achternaam', 'tussenvoegsel', 'voornaam', 'initialen','organisatie', 'projectlocaties', 'aantal_meetpunten', 'aantal_waarnemingen')
+    list_filter = ('achternaam', 'organisatie', LocatieFilter)
     search_fields = ('achternaam', 'voornaam', )
     ordering = ('achternaam', )
     inlines = [AliasInline]
@@ -196,3 +223,59 @@ class RegisteredUserAdmin(admin.ModelAdmin):
 @admin.register(Phone)
 class PhoneAdmin(admin.ModelAdmin):
     list_display = ('device_id','last_contact', 'latitude', 'longitude')
+
+def importWaarnemingenAction(modeladmin, request, queryset):
+    user = request.user
+    try:
+        alias = Alias.objects.get(alias=user.get_username())
+    except:
+        alias = Alias.objects.create(alias=user.get_username(),
+                                     waarnemer = Waarnemer.objects.create(achternaam=user.last_name or user.get_username(), voornaam=request.user.first_name, email = user.email))
+    waarnemer = alias.waarnemer
+    for obj in queryset:
+        if isinstance(obj, MeetLocatie):
+            series = obj.series_set.all()
+        elif isinstance(obj,Datasource):
+            series = obj.getseries()
+        elif isinstance(obj,Series):
+            series = [obj]
+        for s in series:
+            util.importSeries(s,waarnemer)
+importWaarnemingenAction.short_description = 'importeer waarnemingen van geselecteerde onderdelen'
+
+def importMeetpuntenAction(modeladmin, request, queryset):
+    user = request.user
+    try:
+        alias = Alias.objects.get(alias=user.get_username())
+    except:
+        alias = Alias.objects.create(alias=user.get_username(),
+                                     waarnemer = Waarnemer.objects.create(achternaam=user.last_name or user.get_username(), voornaam=request.user.first_name, email = user.email))
+    waarnemer = alias.waarnemer
+    for obj in queryset:
+        if isinstance(obj,Datasource):
+            locs = obj.locations.all()
+            for loc in locs:
+                util.importMeetpunt(loc,waarnemer)
+        elif isinstance(obj,Series):
+            loc = obj.meetlocatie()
+            util.importMeetpunt(loc,waarnemer)            
+        elif isinstance(obj,MeetLocatie):
+            util.importMeetpunt(obj,waarnemer)            
+importMeetpuntenAction.short_description = 'importeer meetpunten van geselecteerde onderdelen'
+
+# Add custom action to datasource admin page
+from acacia.data.models import Datasource, MeetLocatie 
+from acacia.data.admin import DatasourceAdmin, MeetLocatieAdmin 
+class MyDatasourceAdmin(DatasourceAdmin):
+    def __init__(self, model, admin_site):
+        super(MyDatasourceAdmin,self).__init__(model,admin_site)
+        self.actions.extend([importWaarnemingenAction,importMeetpuntenAction])
+admin.site.unregister(Datasource)
+admin.site.register(Datasource, MyDatasourceAdmin)
+
+class MyMeetLocatieAdmin(MeetLocatieAdmin):
+    def __init__(self, model, admin_site):
+        super(MyMeetLocatieAdmin,self).__init__(model,admin_site)
+        self.actions.extend([importWaarnemingenAction,importMeetpuntenAction])
+admin.site.unregister(MeetLocatie)
+admin.site.register(MeetLocatie, MyMeetLocatieAdmin)
