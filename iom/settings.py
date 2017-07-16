@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.sys.path.append('~/texelmeet/acaciadata')
+os.sys.path.append('/home/theo/texelmeet/acaciadata')
 
 SITE_ID = 1
 
@@ -37,8 +37,6 @@ INSTALLED_APPS = (
     'acacia.data',
     'acacia.data.events',
     'registration',
-    'djcelery',
-#    'nested_admin',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -111,8 +109,8 @@ AUTH_PROFILE_MODULE = 'iom.UserProfile'
 
 TASTYPIE_DEFAULT_FORMATS = ['json','xml']
 
-CELERY_RESULT_BACKEND = 'amqp'
-CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.
+# CELERY_RESULT_BACKEND = 'amqp'
+# CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.
 
 # Logging
 LOGGING = {
