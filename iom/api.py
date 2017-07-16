@@ -39,6 +39,7 @@ class MeetpuntResource(ModelResource):
         authorization = DjangoAuthorization()
         excludes = ['chart_thumbnail', 'photo_url', 'image']
         filtering = {
+            'name': ALL,
             'identifier': ALL,
             'device': ALL,
             'submitter': ALL,
@@ -67,7 +68,7 @@ class WaarnemingResource(ModelResource):
         resource_name = 'waarneming'
         authentication = BasicAuthentication(realm='Texel Meet')
         authorization = DjangoAuthorization()
-        excludes = ['foto_url','opmerking']
+        fields = ['datum','eenheid','waarde']
         filtering = {
             'naam': ALL,
             'waarnemer': ALL_WITH_RELATIONS,
