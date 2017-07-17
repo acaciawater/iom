@@ -10,12 +10,12 @@ from django.contrib.gis.geos import Point
 from django.utils import timezone
 from django.conf import settings
 import os,pytz,datetime
-import json,logging
+import logging
 
 from acacia.data.models import ProjectLocatie
 from iom import util
 from iom.akvo import FlowAPI, as_timestamp
-from iom.models import AkvoFlow, CartoDb, Meetpunt, Waarnemer, Alias
+from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
 
 logger = logging.getLogger(__name__)
