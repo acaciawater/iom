@@ -78,8 +78,8 @@ class Waarnemer(models.Model):
         s = ''
         if self.initialen and len(self.initialen) > 0:
             s = self.initialen
-            if s[-1] != '.':
-                s += '.'
+#             if s[-1] != '.':
+#                 s += '.'
             s += ' '
         if self.tussenvoegsel and len(self.tussenvoegsel) > 0:
             s += self.tussenvoegsel + ' '
