@@ -19,6 +19,7 @@ import locale
 import datetime, pytz
 
 from django.core import serializers
+from django.db.models.aggregates import Max
 
 def JsonResponse(request, objects):
     params = request.REQUEST # cant use GET here: values are lists
@@ -103,7 +104,7 @@ class HomeView(ContextMixin,TemplateView):
                 .annotate(wcount=Count('waarneming'))\
                 .filter(wcount__gt=0).order_by('-wcount')
         else:
-            waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming')).filter(wcount__gt=0).order_by('-wcount')
+            waarnemers = Waarnemer.objects.annotate(wcount=Count('waarneming'),wlast=Max('waarneming__datum')).filter(wcount__gt=0).order_by('-wlast')
         context['waarnemers'] = waarnemers
         context['sources'] = Datasource.objects.all()
         context['maptype'] = 'ROADMAP'
