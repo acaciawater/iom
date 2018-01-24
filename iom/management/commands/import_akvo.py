@@ -90,7 +90,8 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
         num_meetpunten += 1
         try:
             lat,lon,elev,code = geoloc.split('|')
-            location = Point(float(lon),float(lat),float(elev),srid=4326)
+            #location = Point(float(lon),float(lat),float(elev),srid=4326)
+            location = Point(float(lon),float(lat),srid=4326)
             location.transform(28992)
         except:
             logger.error('Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
@@ -278,7 +279,7 @@ class Command(BaseCommand):
                         logger.info('Grafieken aanpassen')
                         util.updateSeries(mp, user)
                         #logger.info('Cartodb actualiseren')
-                        util.exportCartodb(cartodb, mp)
+                        #util.exportCartodb(cartodb, mp)
                     akvo.last_update = timezone.now()
                     akvo.save()        
                 except Exception as e:
