@@ -3,7 +3,7 @@
 {% load l10n %}
 {% load iom_filters %}
 {% block breadcrumbs %}{% endblock %}
-{% block title %}{{project|default:"Inlaat op Maat"}} - {{object.name}} {% endblock %}
+{% block title %}{{project|default:"Inlaat op Maat"}} - {{object.displayname}} {% endblock %}
 {% block extrastyle %}
 <style>
 body, html {height: 100%;}
@@ -78,7 +78,7 @@ $(function(){initMap();});
 <div class = "col-md-4">
 {% block list %}
 <div id="list" class="list-group scroll">
-<a href="#" class="list-group-item active" title="Meetpunt">Meetpunt {{object.name}}<span title="Aantal waarnemingen" class="badge">{{object.aantal_waarnemingen}}</a>
+<a href="#" class="list-group-item active" title="Meetpunt">Meetpunt {{object.displayname}}<span title="Aantal waarnemingen" class="badge">{{object.aantal_waarnemingen}}</a>
 <table data-toggle="table" data-pagination=true data-page-size=12 data-url="/waarnemingen/{{object.pk}}">
 <thead>
 <tr>

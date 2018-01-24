@@ -135,7 +135,7 @@ class Meetpunt(MeetLocatie):
     chart = models.ForeignKey(Chart, verbose_name='grafiek', help_text='Interactive grafiek',null=True,blank=True)
     
     def __unicode__(self):
-        return self.name
+        return self.displayname
 
     def chart_url(self):
         try:
@@ -160,20 +160,21 @@ class Meetpunt(MeetLocatie):
         return series[0] if len(series)>0 else None
 
     def aantal_waarnemingen(self):
-        return sum([s.aantal() for s in self.series()])
-        #return self.waarneming_set.count()
-    
-    def datum_laatste_waarneming(self):
-        tots = [s.tot() for s in self.series() if s.tot()]
-        return max(tots) if tots else None
+        #return sum([s.aantal() for s in self.series()])
+        return self.waarneming_set.count()
     
     def laatste_waarneming(self):
         try:
-            waarnemingen = self.waarneming_set.all().order_by('-datum')
-            return waarnemingen[0]
+            return self.waarneming_set.order_by('datum').last()
         except:
             return None
         
+    def datum_laatste_waarneming(self):
+        last = self.laatste_waarneming()
+        return last.datum if last else None
+#         tots = [s.tot() for s in self.series() if s.tot()]
+#         return max(tots) if tots else None
+    
     def photo(self):
         return '<a href="{url}"><img src="{url}" height="60px"/></a>'.format(url=self.photo_url) if self.photo_url else ''
     photo.allow_tags=True

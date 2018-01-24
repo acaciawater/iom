@@ -5,21 +5,16 @@ Created on Oct 5, 2016
 '''
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-
-from optparse import make_option
 from django.contrib.gis.geos import Point
-from django.utils import timezone
 from django.conf import settings
 from dateutil import parser
-import os,pytz,datetime
-import json,logging
+import os
+import logging
 import xlrd
 import re
 
 from acacia.data.models import ProjectLocatie
-from iom import util
-from iom.akvo import FlowAPI, as_timestamp
-from iom.models import AkvoFlow, CartoDb, Meetpunt, Waarnemer, Alias
+from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
 
 logger = logging.getLogger(__name__)
@@ -69,8 +64,8 @@ def importRegistrationForm(sheet,projectlocatie,user):
     meetpunten=set()
     waarnemingen=set()
     num_meetpunten = 0
-    keys = [sheet.cell(0, col).value.split('|')[-1] for col in xrange(sheet.ncols)]
-    for row in xrange(1,sheet.nrows):
+    keys = [sheet.cell(1, col).value.split('|')[-1] for col in xrange(sheet.ncols)]
+    for row in xrange(2,sheet.nrows):
         cells = {keys[col]: sheet.cell(row, col).value for col in xrange(sheet.ncols)}
         identifier = cells['Identifier']
         displayName = cells['Display Name']
@@ -98,32 +93,30 @@ def importRegistrationForm(sheet,projectlocatie,user):
         if foto:
             foto = download_photo(foto)
 
-        if meetid:
-            # Gebuik waarnemer naam + meetid
-            meetName = '{name} - {id}'. format(name=akvoname, id=meetid)
-        else:
-            meetName = displayName
+#         if meetid:
+#             # Gebuik waarnemer naam + meetid
+#             meetName = '{name} - {id}'. format(name=akvoname, id=meetid)
+#         else:
+#             meetName = displayName
+# 
+#         name = meetName or 'Naamloos'
+        
+        # use identifier as name to avoid duplicate keys in acacia.data
+        name = identifier
 
-        name = meetName or 'Naamloos'
         meetpunt = None
-        for dup in range(10):
-            try:
-                meetpunt, created = waarnemer.meetpunt_set.get_or_create(identifier=identifier, defaults={
-                    'name': name, 
-                    'projectlocatie': projectlocatie, 
-                    'location': location, 
-                    'displayname': displayName, 
-                    'device': device,
-                    'photo_url': foto,
-                    'description': omschrijving})
-                break
-            except Exception as e:
-                logger.error('Dubbel meetpunt {mname} voor waarnemer {wname}'.format(mname=meetName, wname=unicode(waarnemer)))
-                name = '{} ({})'.format(meetName, dup+1) 
-                continue
-
-        if not meetpunt:
-            raise Exception('Te veel dubbele meetopunten met naam {name}'.format(name=meetName))
+        try:
+            meetpunt, created = waarnemer.meetpunt_set.get_or_create(identifier=identifier, defaults={
+                'name': name, 
+                'projectlocatie': projectlocatie, 
+                'location': location, 
+                'displayname': displayName, 
+                'device': device,
+                'photo_url': foto,
+                'description': omschrijving})
+        except Exception as e:
+            logger.exception('Probleem bij toevoegen meetpunt {m} van waarnemer {w}: {e}'.format(m=displayName, w=waarnemer, e=e))
+            continue
             
         if created:
             logger.info('Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=name,name=unicode(waarnemer)))
@@ -163,8 +156,8 @@ def importMonitoringForm(sheet):
     num_waarnemingen = 0
     num_replaced = 0
 
-    keys = [sheet.cell(0, col).value.split('|')[-1] for col in xrange(sheet.ncols)]
-    for row in xrange(1,sheet.nrows):
+    keys = [sheet.cell(1, col).value.split('|')[-1] for col in xrange(sheet.ncols)]
+    for row in xrange(2,sheet.nrows):
         cells = {keys[col]: sheet.cell(row, col).value for col in xrange(sheet.ncols)}
         submitter = cells['Submitter']
         waarnemer = get_or_create_waarnemer(submitter)
@@ -217,37 +210,42 @@ def importMonitoringForm(sheet):
 class Command(BaseCommand):
     args = ''
     help = 'Importeer cleaned_data spreadsheet'
-    option_list = BaseCommand.option_list + (
-            make_option('--file',
-                action='store',
-                dest = 'fname',
-                default='/media/sf_C_DRIVE/Users/theo/Downloads/NZG_RAW_DATA-10410916.xlsx',
-                help = 'xlsx file'),
-            make_option('--user',
-                action='store',
-                dest = 'user',
-                default = 'akvo',
-                help = 'user name'),
-        )
+
+    def add_arguments(self, parser):
+        
+        parser.add_argument('--file',
+            action='store',
+            dest = 'fname',
+            default='/media/sf_Documents/projdirs/NZG/DATA_CLEANING-10410916.xlsx',
+            help = 'xlsx file')
+
+        parser.add_argument('--user',
+            action='store',
+            dest = 'user',
+            default = 'akvo',
+            help = 'user name')
 
     def handle(self, *args, **options):
         user = User.objects.get(username=options.get('user'))
-        filename = args[0]
+        filename = options.get('fname')
         logger.debug('Importing '+filename)
         locatie = None
-        match = re.search('RAW_DATA\-(\d+)\.', filename)
+        match = re.search('DATA_CLEANING\-(\d+)\.', filename)
         if match:
             surveyId = match.group(1)
             # find surveyid in akvo config
             for candidate in ProjectLocatie.objects.all():
-                if surveyId == candidate.akvoflow.regform:
+                try:
+                    candidate.akvoflow_set.get(regform__exact=surveyId)
                     locatie = candidate
                     isRegForm = True
                     break
-                if surveyId == candidate.akvoflow.monforms: 
+                except:
+                    candidate.akvoflow_set.get(monforms__contains=surveyId)
                     locatie = candidate
                     isRegForm = False
                     break
+
         if not locatie:
             logger.error('Geen geregistreerde survey gevonden voor dit bestand')
             return 

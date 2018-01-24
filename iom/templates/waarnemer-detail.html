@@ -65,7 +65,7 @@ function hideMarker() {
 {% for m in meetpunten %}
 <div class="row">
 	<div class="col col-xs-9">
-		<a href="{% url 'meetpunt-detail' m.id %}?{{request.GET.urlencode}}" class="list-group-item" onmouseover="showMarker({{m.latlng}});" onmouseout="hideMarker();">{{m.name}}
+		<a href="{% url 'meetpunt-detail' m.id %}?{{request.GET.urlencode}}" class="list-group-item" onmouseover="showMarker({{m.latlng}});" onmouseout="hideMarker();">{{m.displayname}}
 		<span class = "badge" title='Aantal waarnemingen'>{{m.aantal_waarnemingen|defaultif0:""}}</span><br/>
 		<div class='text-muted'><small>{{m.description|default:"&nbsp;"}}<div class="laatste" title="datum van laatste waarneming">{{m.laatste_waarneming.datum|date:"j M Y"|default:""}}</div></small></div>
 		</a>

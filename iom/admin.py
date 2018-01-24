@@ -121,11 +121,11 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
     actions = [maak_grafiek,update_series,update_cdb_locations, update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
-    list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'ahn', 'aantal_waarnemingen', 'photo')
+    list_display = ('identifier', 'projectlocatie', 'waarnemer', 'displayname', 'description', 'ahn', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
-    search_fields = ('name', 'waarnemer__achternaam', )
-    fields = ('name', 'waarnemer', 'projectlocatie', 'location', 'photo_url', 'chart_thumbnail', 'description',)
+    search_fields = ('name', 'displayname', 'waarnemer__achternaam', )
+    fields = ('name', 'displayname', 'waarnemer', 'projectlocatie', 'location', 'photo_url', 'chart_thumbnail', 'description',)
     formfield_overrides = {models.PointField:{'widget': Textarea}}
     
 class AdresForm(forms.ModelForm):

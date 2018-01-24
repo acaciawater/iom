@@ -92,6 +92,7 @@ def maak_meetpunt_thumbnail(meetpunt):
     halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
     x=[s.first_valid_index(),s.first_valid_index()+halfway,s.last_valid_index()]
     plt.xticks(x, rotation = 'horizontal')
+    ax = plt.gca();
     for tick in ax.xaxis.get_major_ticks():
         tick.label1.set_horizontalalignment('center')
     ax.tick_params(axis='x',pad=20)
@@ -141,9 +142,9 @@ def updateSeries(mps, user):
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
             waarde = w.waarde
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': 'µS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': u'µS/cm'})
             if created:
-                logger.info('Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name,locatie=unicode(mp)))  
+                logger.info(u'Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name.encode('utf-8'),locatie=mp.displayname.encode('utf-8')))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})
             updated = created
             if not created and dp.value != waarde:
@@ -379,6 +380,8 @@ def exportCartodb2(cartodb, waarnemingen, table = None):
                 
 def processTriggers(mps):
     
+    from acacia.data.events.messenger import Messenger
+    
     for mp in mps:
         for e in mp.get_events():
             history = e.history_set.filter(sent=True).order_by('-date')
@@ -395,5 +398,5 @@ def processTriggers(mps):
                         m.add('Meetpunt {mp}: {msg}'.format(mp=mp,msg=e.format_message(date,value)))
                     msg = 'Event {name} was triggered {count} times for {mp} since {date}'.format(name=e.trigger.name, count=num, mp=mp,date=start)
             else:
-                msg = 'No alarms triggered for trigger {name} since {date}'.format(date=start, name=t.name)
+                msg = 'No alarms triggered for trigger {name} since {date}'.format(date=start, name=e.trigger.name)
             logger.debug(msg)
