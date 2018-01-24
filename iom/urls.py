@@ -13,7 +13,7 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import include, url, patterns
+from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
@@ -25,6 +25,7 @@ from views import HomeView, WaarnemerDetailView, MeetpuntDetailView,\
 
 from tastypie.api import Api
 from api import WaarnemerResource, MeetpuntResource, WaarnemingResource
+from acacia.data.views import SeriesToDict
 v1 = Api(api_name='v1')
 v1.register(WaarnemerResource())
 v1.register(MeetpuntResource())
@@ -37,7 +38,7 @@ urlpatterns = [
     #url(r'^akvo$','iom.views.importAkvo',name='akvo'),
     url(r'^waarnemer/(?P<pk>\d+)$',WaarnemerDetailView.as_view(),name='waarnemer-detail'),
 
-    url(r'^get/series/(?P<pk>\d+)/$', 'acacia.data.views.SeriesToDict'),
+    url(r'^get/series/(?P<pk>\d+)/$', SeriesToDict),
     url(r'^get/waarnemers', get_waarnemers),
     url(r'^get/meetpunten', get_meetpunten),
     url(r'^get/waarnemingen', get_waarnemingen),
