@@ -259,6 +259,28 @@ def updateCartodb(cartodb, mps):
 
 from itertools import groupby
 
+# updates coordinates of all measurements on cartodb
+def updateCartodbLocation(cartodb, mps, table = None):
+    if not table:
+        table = cartodb.datatable
+    for m in mps:
+        print m
+        
+        regio = m.projectlocatie.name
+        meetpunt = m.name.replace("'", "''")
+        p = m.location
+        p.transform(4326)
+
+        logger.debug('Actualiseren cartodb meetpuntlocatie {meetpunt}'.format(meetpunt=m))
+        sql = "UPDATE {table} SET the_geom = CDB_LatLng({y},{x}) WHERE regio='{regio}' AND meetpunt='{meetpunt}'"\
+            .format(table=table, x=p.x,y=p.y,meetpunt=meetpunt,regio=regio)
+        logger.debug(sql)
+        ok = cartodb.runsql(sql)
+        sql = "UPDATE {table} SET the_geom_webmercator = ST_Transform(CDB_LatLng({y},{x}),3875) WHERE regio='{regio}' AND meetpunt='{meetpunt}'"\
+            .format(table=table, x=p.x,y=p.y,meetpunt=meetpunt,regio=regio)
+        logger.debug(sql)
+        ok = cartodb.runsql(sql)
+
 # this version replaces ALL measurements of a meetpunt
 def exportCartodb(cartodb, mps, table = None):
     if not table:

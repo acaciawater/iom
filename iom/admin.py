@@ -84,6 +84,10 @@ def update_cdb_waarnemers(modeladmin, request, queryset):
     util.updateCartodb(CartoDb.objects.get(pk=1), mps)
 update_cdb_waarnemers.short_description = 'cartodb en tijdreeksen actualiseren voor meetpunten van geselecteerde waarnemers'
 
+def update_cdb_locations(modeladmin, request, queryset):
+    util.updateCartodbLocation(CartoDb.objects.get(pk=1), queryset, 'allemetingen')
+update_cdb_locations.short_description = 'actualiseren van de locaties van geselecteerde meetpunten bij cartodb'
+
 def export_cdb_waarnemingen(modeladmin, request, queryset):
     util.exportCartodb2(CartoDb.objects.get(pk=1), queryset)
 export_cdb_waarnemingen.short_description = 'geselecteerde waarnemingen exporteren naar cartodb'
@@ -116,7 +120,7 @@ link_series.short_description = 'Koppel gerelateerde tijdreeksen aan geselecteer
 @admin.register(Meetpunt)
 class MeetpuntAdmin(admin.ModelAdmin):
 #class MeetpuntAdmin(nested_admin.NestedAdmin):
-    actions = [maak_grafiek,update_series,update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
+    actions = [maak_grafiek,update_series,update_cdb_locations, update_cdb_meetpunten,link_series,export_cdb_meetpunten,meetpunt_elevation_from_ahn]
     list_display = ('identifier', 'projectlocatie', 'name', 'waarnemer', 'displayname', 'description', 'ahn', 'aantal_waarnemingen', 'photo')
     list_filter = ('waarnemer', 'projectlocatie')
     inlines = [WaarnemingInline,]
