@@ -20,6 +20,7 @@ import datetime, pytz
 
 from django.core import serializers
 from django.db.models.aggregates import Max
+from operator import pos
 
 def JsonResponse(request, objects):
     params = request.REQUEST # cant use GET here: values are lists
@@ -125,7 +126,7 @@ class WaarnemerDetailView(ContextMixin,DetailView):
     def get_context_data(self, **kwargs):
         context = super(WaarnemerDetailView, self).get_context_data(**kwargs)
         waarnemer = self.get_object();
-        # get list of unique measuring locations where this waarnemer has taken measurments
+        # get list of unique measuring locations where this waarnemer has taken measurements
         if 'search' in self.request.GET:
             term = self.request.GET['search']
             mps = list(set([w.locatie for w in waarnemer.waarneming_set.filter(Q(locatie__name__icontains=term)|
@@ -136,7 +137,15 @@ class WaarnemerDetailView(ContextMixin,DetailView):
             laatste = w.laatste_waarneming()
             return laatste.datum if laatste else datetime.datetime.now(pytz.UTC)
         mps.sort(key = _dosort, reverse = True)
-        context['meetpunten'] = mps 
+        context['meetpunten'] = mps
+
+        # get bounding box
+        if mps:
+            import numpy as np
+            coords = np.array([m.latlng() for m in mps])
+            nw = np.amin(coords,axis=0)
+            se = np.amax(coords,axis=0)
+            context['bounds'] = [[nw[0],nw[1]],[se[0],se[1]]]
         return context
 
 class DatasourceDetailView(ContextMixin,DetailView):

@@ -4,11 +4,9 @@
 {% load iom_filters %}
 {% block title %}{{project|default:"Inlaat op Maat"}} - {{object}} {% endblock %}
 {% block createdone %}
-	var qry = "SELECT * FROM {{cartodb.datatable}} WHERE waarnemer = '{{object}}'";
-	var sql = new cartodb.SQL({ user: 'tkleinen' });
-    sql.getBounds(qry).done(function(bounds) {
-   		theMap.fitBounds(bounds);
-   	});
+    {% if bounds %}
+    theMap.fitBounds({{bounds}});
+    {% endif %}
 {% endblock createdone %}
 {% block extrastyle %}
 {{ block.super }}
