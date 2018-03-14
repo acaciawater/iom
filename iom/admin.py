@@ -147,13 +147,24 @@ class AdresAdmin(admin.ModelAdmin):
                        }
                   ),
                 )
-    
+
+def rename_alias(modeladmin, request, queryset):
+    """ rename waarnemer of meetpunt/waarneming of alias to waarnemer """
+    """ manually set target waarnemer for alias first """
+
+    for a in queryset:
+        m = Meetpunt.objects.filter(waarnemer__achternaam=a.alias)
+        m.update(waarnemer=a.waarnemer)
+        w = Waarneming.objects.filter(waarnemer__achternaam=a.alias)
+        w.update(waarnemer=a.waarnemer)
+
 @admin.register(Alias)
 class AliasAdmin(admin.ModelAdmin):
     list_display = ('alias', 'waarnemer')
-    list_filter = ('waarnemer', )
+    list_filter = ('waarnemer',)
     search_fields = ('alias', 'waarnemer', )
-
+    actions = [rename_alias]
+    
 class AliasInline(admin.TabularInline):
     model = Alias
     extra = 0
