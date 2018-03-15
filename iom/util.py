@@ -74,10 +74,10 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     meetpunt.chart_thumbnail.name = imagefile
     
-    matplotlib.rc('axes', labelsize=18)
-    matplotlib.rc('axes', titlesize=22)
-    matplotlib.rc('xtick', labelsize=20)
-    matplotlib.rc('ytick', labelsize=22)
+#     matplotlib.rc('axes', labelsize=18)
+#     matplotlib.rc('axes', titlesize=22)
+#     matplotlib.rc('xtick', labelsize=20)
+#     matplotlib.rc('ytick', labelsize=22)
     
     plt.figure(figsize=(9,3))
     options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
@@ -86,14 +86,14 @@ def maak_meetpunt_thumbnail(meetpunt):
         if not s.empty:
             s.plot(**options)
 
-    plt.locator_params(axis='y',nbins=2)
-    halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
-    x=[s.first_valid_index(),s.first_valid_index()+halfway,s.last_valid_index()]
-    plt.xticks(x, rotation = 'horizontal')
-    ax = plt.gca();
-    for tick in ax.xaxis.get_major_ticks():
-        tick.label1.set_horizontalalignment('center')
-    ax.tick_params(axis='x',pad=20)
+#     plt.locator_params(axis='y',nbins=2)
+#     halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
+#     x=[s.first_valid_index(),s.first_valid_index()+halfway,s.last_valid_index()]
+#     plt.xticks(x, rotation = 'horizontal')
+#     ax = plt.gca();
+#     for tick in ax.xaxis.get_major_ticks():
+#         tick.label1.set_horizontalalignment('center')
+#     ax.tick_params(axis='x',pad=20)
    
     try:
         plt.savefig(imagepath)
