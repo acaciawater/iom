@@ -133,7 +133,7 @@ def maak_meetpunt_grafiek(meetpunt,user):
             cs.save()
     chart.save()
     
-    #maak_meetpunt_thumbnail(meetpunt)
+    maak_meetpunt_thumbnail(meetpunt)
     
 def updateSeries(mps, user):    
     '''update timeseries using meetpunten in mps'''
