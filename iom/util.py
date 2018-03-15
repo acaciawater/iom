@@ -136,13 +136,13 @@ def maak_meetpunt_grafiek(meetpunt,user):
     #maak_meetpunt_thumbnail(meetpunt)
     
 def updateSeries(mps, user):    
-    '''update timeseries using meetpunten in  mps'''
+    '''update timeseries using meetpunten in mps'''
     allseries = set()
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
             waarde = w.waarde
-            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'unit': u'µS/cm'})
+            series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'scale': 0.001, 'unit': u'mS/cm'})
             if created:
                 logger.info(u'Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name.encode('utf-8'),locatie=mp.displayname.encode('utf-8')))  
             dp, created = series.datapoints.get_or_create(date=w.datum, defaults={'value': waarde})

@@ -52,7 +52,7 @@ def WaarnemingenToDict(request, pk):
         else:
             return '&nbsp;'
 
-    dct = [{'date': w.datum, 'EC': w.waarde, 'diep': diep(w),'foto': '<a href="{f}"><img class="foto" src="{f}"/></a>'.format(f=w.foto_url) if w.foto_url else '-' } for w in waarnemingen]
+    dct = [{'date': w.datum, 'EC': '%.2f' % (w.waarde/1000), 'diep': diep(w),'foto': '<a href="{f}"><img class="foto" src="{f}"/></a>'.format(f=w.foto_url) if w.foto_url else '-' } for w in waarnemingen]
     dct.sort(key=lambda x: x['date'],reverse=True)
     j = json.dumps(dct, default=lambda x: x.astimezone(tz).strftime('%c'))
     return HttpResponse(j, content_type='application/json')
