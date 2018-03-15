@@ -81,12 +81,10 @@ def maak_meetpunt_thumbnail(meetpunt):
     
     plt.figure(figsize=(9,3))
     options = {'grid': False, 'legend': True, 'title': 'Meetpunt {num}'.format(num=meetpunt)}
-    mps = zoek_meetpunten(meetpunt.location, 1)
-    for mp in mps:
-        for s in mp.series_set.all():
-            s = s.to_pandas()
-            if not s.empty:
-                s.plot(**options)
+    for s in meetpunt.series_set.all():
+        s = s.to_pandas()
+        if not s.empty:
+            s.plot(**options)
 
     plt.locator_params(axis='y',nbins=2)
     halfway = divide_timedelta((s.last_valid_index()-s.first_valid_index()),2)
