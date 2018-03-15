@@ -85,7 +85,7 @@ def maak_meetpunt_thumbnail(meetpunt):
     for mp in mps:
         for s in mp.series_set.all():
             s = s.to_pandas()
-            if not s.empty():
+            if not s.empty:
                 s.plot(**options)
 
     plt.locator_params(axis='y',nbins=2)
