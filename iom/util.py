@@ -139,7 +139,7 @@ def updateSeries(mps, user):
     for mp in mps:
         loc = mp.projectlocatie
         for w in mp.waarneming_set.all():
-            waarde = w.waarde
+            waarde = w.waarde / 1000
             series, created = mp.series_set.get_or_create(name=w.naam,defaults={'user': user, 'type': 'scatter', 'scale': 0.001, 'unit': u'mS/cm'})
             if created:
                 logger.info(u'Tijdreeks {name} aangemaakt voor meetpunt {locatie}'.format(name=series.name.encode('utf-8'),locatie=mp.displayname.encode('utf-8')))  
