@@ -279,7 +279,7 @@ class Command(BaseCommand):
                         logger.info(u'Grafieken aanpassen')
                         util.updateSeries(mp, user)
                         #logger.info('Cartodb actualiseren')
-                        #util.exportCartodb(cartodb, mp)
+                        util.exportCartodb(cartodb, mp)
                     akvo.last_update = timezone.now()
                     akvo.save()        
                 except Exception as e:
