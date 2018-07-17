@@ -33,7 +33,7 @@ def get_or_create_waarnemer(akvoname):
         # is deze alias al geregistreerd?
         alias = Alias.objects.get(alias=akvoname)
         waarnemer = alias.waarnemer
-        logger.debug('Waarnemer {name} gevonden met alias {alias}'.format(name=unicode(waarnemer),alias=alias))
+        logger.debug(u'Waarnemer {name} gevonden met alias {alias}'.format(name=unicode(waarnemer),alias=alias))
     except Alias.DoesNotExist:
         # Bestaat er al een waarnemer met deze naam?
         words = akvoname.split()
@@ -49,10 +49,10 @@ def get_or_create_waarnemer(akvoname):
         else:
             waarnemer, created = Waarnemer.objects.get_or_create(achternaam=akvoname)
         if created:
-            logger.info('Waarnemer {} aangemaakt'.format(unicode(waarnemer)))
+            logger.info(u'Waarnemer {} aangemaakt'.format(unicode(waarnemer)))
         # alias toevoegen aan waarnemer
         alias = waarnemer.alias_set.create(alias=akvoname)
-        logger.info('alias {alias} toegevoegd aan waarnemer {name}'.format(alias=unicode(alias),name=unicode(waarnemer)))
+        logger.info(u'alias {alias} toegevoegd aan waarnemer {name}'.format(alias=unicode(alias),name=unicode(waarnemer)))
     return waarnemer
 
 def download_photo(url):
@@ -69,7 +69,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
     waarnemingen=set()
     surveyId = akvo.regform
     if not surveyId:
-        logger.warning('No registration form for akvo configuration {}'.format(akvo))
+        logger.warning(u'No registration form for akvo configuration {}'.format(akvo))
         return meetpunten, waarnemingen 
     num_meetpunten = 0
     beginDate=as_timestamp(akvo.last_update + datetime.timedelta(days=-days)) if days else None
@@ -94,7 +94,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
             location = Point(float(lon),float(lat),srid=4326)
             location.transform(28992)
         except:
-            logger.error('Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
+            logger.error(u'Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
             continue
 
         akvoname = akvowaarnemer or submitter
@@ -123,14 +123,14 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
                     'description': omschrijving})
                 break
             except Exception as e:
-                logger.error('Dubbel meetpunt {mname} voor waarnemer {wname}. Error={error}'.format(mname=name, wname=unicode(waarnemer), error=e))
+                logger.error(u'Dubbel meetpunt {mname} voor waarnemer {wname}. Error={error}'.format(mname=name, wname=unicode(waarnemer), error=e))
                 name = '{} ({})'.format(meetName, dup+1) 
                 continue
         if not meetpunt:
-            raise Exception('Te veel dubbele meetpunten met naam {name}'.format(name=meetName))
+            raise Exception(u'Te veel dubbele meetpunten met naam {name}'.format(name=meetName))
 
         if created:
-            logger.info('Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=meetName,name=unicode(waarnemer)))
+            logger.info(u'Meetpunt {id} aangemaakt voor waarnemer {name}'.format(id=meetName,name=unicode(waarnemer)))
             meetpunten.add(meetpunt)
 
         #if device != 'IMPORTER':
@@ -142,11 +142,11 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
             waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
                                               defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
         except Exception as e:
-            logger.exception('Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
+            logger.exception(u'Probleem bij toevoegen waarneming {wname} aan meetpunt {mname}'.format(wname=waarneming_naam, mname=unicode(meetpunt)))
             continue
 
         if created:
-            logger.debug('{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+            logger.debug(u'{id}, {date}, EC={ec}'.format(id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
             waarnemingen.add(waarneming)
             meetpunten.add(meetpunt)
 
@@ -157,7 +157,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
             meetpunten.add(meetpunt)
         #endif
         
-    logger.info('Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
+    logger.info(u'Aantal meetpunten: {aantal}, nieuwe meetpunten: {new}'.format(aantal=num_meetpunten, new=len(meetpunten)))
 
     return meetpunten, waarnemingen
    
@@ -269,20 +269,20 @@ class Command(BaseCommand):
             for akvo in locatie.akvoflow_set.all():
                 api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
                 try:
-                    logger.info('Meetpuntgegevens ophalen voor {}'.format(locatie))
+                    logger.info(u'Meetpuntgegevens ophalen voor {}'.format(locatie))
                     m1,w1 = importAkvoRegistration(api, akvo, projectlocatie=locatie,user=user,days=days)
-                    logger.info('Waarnemingen ophalen voor {}'.format(locatie))
+                    logger.info(u'Waarnemingen ophalen voor {}'.format(locatie))
                     m2,w2=importAkvoMonitoring(api, akvo, days)
                     mp = m1|m2
                     wn = w1|w2
                     if mp:
-                        logger.info('Grafieken aanpassen')
+                        logger.info(u'Grafieken aanpassen')
                         util.updateSeries(mp, user)
                         #logger.info('Cartodb actualiseren')
                         #util.exportCartodb(cartodb, mp)
                     akvo.last_update = timezone.now()
                     akvo.save()        
                 except Exception as e:
-                    logger.exception('Probleem met verwerken nieuwe EC metingen: %s',e)
+                    logger.exception(u'Probleem met verwerken nieuwe EC metingen: %s',e)
                 finally:
                     pass
