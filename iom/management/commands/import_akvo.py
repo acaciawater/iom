@@ -173,7 +173,7 @@ def importAkvoMonitoring(api,akvo,days):
         try:
             instances,meta = api.get_survey_instances(surveyId=surveyId,beginDate=beginDate)
         except Exception as e:
-            logger.exception('Monitoringsurvey {}: {}'.format(survey,e))
+            logger.exception(u'Monitoringsurvey {}: {}'.format(survey,e))
             continue
         while instances:
             for instance in instances:
@@ -185,7 +185,7 @@ def importAkvoMonitoring(api,akvo,days):
                 try:
                     meetpunt = Meetpunt.objects.get(identifier=localeId)
                 except Meetpunt.DoesNotExist:
-                    logger.error('Meetpunt {locale} niet gevonden voor {submitter}'.format(locale=localeId, submitter=submitter))
+                    logger.error(u'Meetpunt {locale} niet gevonden voor {submitter}'.format(locale=localeId, submitter=submitter))
                     continue
                 
                 device = instance['deviceIdentifier']
@@ -210,23 +210,23 @@ def importAkvoMonitoring(api,akvo,days):
                     waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
                                               defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
                 except Exception as ex:
-                    logger.exception('Probleem met toevoegen van waarneming {waar} met waarde {waarde} aan meetpunt {meetpunt}'.format(waar=waarneming_naam, waarde=ec, meetpunt=meetpunt))
+                    logger.exception(u'Probleem met toevoegen van waarneming {waar} met waarde {waarde} aan meetpunt {meetpunt}'.format(waar=waarneming_naam, waarde=ec, meetpunt=meetpunt))
                     continue
                 
                 if created:
-                    logger.debug('created {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+                    logger.debug(u'created {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_waarnemingen += 1
                     waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
                 elif waarneming.waarde != ec:
                     waarneming.waarde = ec
                     waarneming.save()
-                    logger.debug('updated {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
+                    logger.debug(u'updated {locale}={mp}, {id}({date})={ec}'.format(locale=localeId, mp=unicode(meetpunt), id=waarneming.naam, date=waarneming.datum, ec=waarneming.waarde))
                     num_replaced += 1
                     waarnemingen.add(waarneming)
                     meetpunten.add(meetpunt)
             instances,meta = api.get_survey_instances(surveyId=surveyId, beginDate=beginDate, since=meta['since'])
-    logger.info('Aantal nieuwe metingen: {meet}, bijgewerkt: {repl}'.format(meet=num_waarnemingen,repl=num_replaced))
+    logger.info(u'Aantal nieuwe metingen: {meet}, bijgewerkt: {repl}'.format(meet=num_waarnemingen,repl=num_replaced))
     return meetpunten, waarnemingen
 
 class Command(BaseCommand):
