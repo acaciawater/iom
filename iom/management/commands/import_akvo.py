@@ -17,6 +17,7 @@ from iom import util
 from iom.akvo import FlowAPI, as_timestamp
 from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +195,7 @@ def importAkvoMonitoring(api,akvo,days):
 
                 answers = api.get_answers(instance['keyId'])
                 ec=api.get_answer(answers,questionText='EC waarde - ECOND')
+
                 foto=api.get_answer(answers,questionID='Maak een foto van het meetgebied')
                 diep=api.get_answer(answers,questionText='Diep of ondiep')
                 waarneming_naam = maak_naam('EC',diep)
@@ -206,7 +208,17 @@ def importAkvoMonitoring(api,akvo,days):
                     meetpunt.photo_url = foto
                     meetpunt.save(update_fields=['photo_url'])
                 try:     
-                
+                    try:
+                        ec = float(ec)
+                    except:
+                        # patch to handle caddisfly answer type (for Rijnlandmeet)
+                        answer = json.loads(ec)
+                        if isinstance(answer, dict):
+                            if answer['type'] == u'caddisfly':
+                                for result in answer['result']:
+                                    if u'Electrical Conductivity' in result['name']:
+                                        ec = result['value']
+                                    
                     waarneming, created = meetpunt.waarneming_set.get_or_create(naam=waarneming_naam, waarnemer=waarnemer, datum=date, 
                                               defaults = {'waarde': ec, 'device': device, 'opmerking': '', 'foto_url': foto, 'eenheid': 'uS/cm'})
                 except Exception as ex:
