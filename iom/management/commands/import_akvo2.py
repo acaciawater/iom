@@ -14,10 +14,9 @@ import logging
 
 from acacia.data.models import ProjectLocatie
 from iom import util
-from akvo2 import FlowAPI, as_timestamp, parser
+from iom.akvo2 import FlowAPI, parser
 from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
-import json
 
 logger = logging.getLogger(__name__)
 
