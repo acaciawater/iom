@@ -209,9 +209,10 @@ class AkvoFlow(models.Model):
     instance = models.CharField(max_length=100)
     key = models.CharField(max_length=100)    
     secret = models.CharField(max_length=100)
-    storage = models.CharField(max_length=100) 
-    regform = models.CharField(max_length=100,blank=True, null=True, verbose_name = 'Registratieformulier',help_text='Survey id van registratieformulier')
-    monforms = models.CharField(max_length=100,blank=True, null=True, verbose_name = 'Monitoringformulier',help_text='Survey id van monitoringformulier')
+    storage = models.CharField(max_length=100)
+    surveyid = models.CharField(max_length=100,blank=True, null=True, verbose_name = 'SurveyId',help_text='Id van survey') 
+    regform = models.CharField(max_length=100,blank=True, null=True, verbose_name = 'Registratieformulier',help_text='Id van registratieformulier')
+    monforms = models.CharField(max_length=100,blank=True, null=True, verbose_name = 'Monitoringformulier',help_text='Id van monitoringformulier')
     last_update = models.DateTimeField(null=True)
 
     class Meta:
