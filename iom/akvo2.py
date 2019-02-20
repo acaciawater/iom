@@ -6,9 +6,11 @@ Created on Feb 14, 2019
 '''
 import requests
 import dateutil
+import logging
 from pytz import utc
 from time import mktime
 parser = dateutil.parser.parser()
+logger = logging.getLogger(__name__)
 
 def as_timestamp(dt):
     ''' return utc timestamp for dt '''
@@ -63,7 +65,7 @@ class FlowAPI:
 
     def refresh_token(self):
         '''
-        Refresh token (expires after 300-1800 seconds)
+        Refresh token (token expires after 300-1800 seconds)
         '''
         if not self.auth:
             # not previously authenticated
@@ -89,6 +91,11 @@ class FlowAPI:
                    'Authorization': 'Bearer '+token
         }
         response = requests.get(url,params=kwargs,headers=headers)
+        logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
+        if response.status_code in [401, 403]:
+            self.authenticate()
+            response = requests.get(url,params=kwargs,headers=headers)
+            logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
         response.raise_for_status()
         return response.json()
 
@@ -96,6 +103,20 @@ class FlowAPI:
         ''' send a GET request to the API '''
         return self.request(self.url + path, **kwargs)
 
+    def get_folder(self, name):
+        response = self.get('folders')
+        for folder in response['folders']:
+            if folder['name'] == name:
+                return folder
+        return None
+    
+    def get_survey(self, folder, name):
+        response=self.request(folder['surveysUrl'])
+        for survey in response['surveys']:
+            if survey['name'] == name:
+                return survey
+        return None        
+    
     def get_form_instances(self, survey_id, form_id, beginDate=None, endDate=None):
         response = self.get('form_instances',survey_id=survey_id,form_id=form_id)
         while True:
