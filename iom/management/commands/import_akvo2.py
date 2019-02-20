@@ -104,7 +104,6 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
 
         # change reference to photo from smartphone storage to amazon storage and download to this server
         if foto:
-#             foto = download_photo(os.path.join(akvo.storage,os.path.basename(foto)))
             foto = download_photo(foto)
 
         if meetid:
@@ -283,7 +282,6 @@ class Command(BaseCommand):
         for locatie in locaties:
             cartodb = locatie.cartodb
             for akvo in locatie.akvoflow_set.all():
-#                 api = FlowAPI(instance=akvo.instance, key=akvo.key, secret=akvo.secret)
                 api = FlowAPI()
                 api.authenticate(username=settings.AKVO_USERNAME, password=settings.AKVO_PASSWORD)
                 try:
