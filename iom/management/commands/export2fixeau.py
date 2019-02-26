@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 import json
 import logging
 import string
@@ -23,6 +24,35 @@ def genpasswd(length=8):
     ''' generate a password of length characters '''
     charset = string.ascii_letters + string.digits + '!@#$%&*+=-?.:'
     return genstring(charset,length)
+
+def truncate(string, maxlength, ellipsis='...', position='end'):
+    ''' truncate a string to maxlength characters and insert placeholder in truncated string. 
+    position can be begin, end or middle '''
+    
+    length = len(string)
+    if length <= maxlength:
+        return string
+
+    # remove trailing whitespace
+    string = string.strip()
+    length = len(string)
+    if length <= maxlength:
+        return string
+
+    # remove all other whitespace    
+    string = re.sub(r'\s','',string)
+    length = len(string)
+    if length <= maxlength:
+        return string
+    
+    length2 = maxlength - len(ellipsis)
+    if position == 'end':
+        return string[:length2] + ellipsis
+    if position == 'begin':
+        return ellipsis + string[-length2:]
+    left = length2/2
+    right = length2-left
+    return string[:left] + ellipsis + string[-right:]
     
 class Api:
     ''' Interface to api with JWT authorization '''
@@ -79,9 +109,9 @@ class Command(BaseCommand):
                 dest = 'folder',
                 default = 6,
                 help = 'Folder id for data sources and time series')
-
+        
     def findObjects(self, path, query):
-        ''' returns json iterator of all objects that satisfies query '''
+        ''' returns generator that iterates over all objects satisfying query '''
         response = self.api.get(path, params=query)
         next = True
         while next:
@@ -123,33 +153,43 @@ class Command(BaseCommand):
         response.raise_for_status()
         return response.json()
     
+    def makeUsername(self,waarnemer):
+        username = str(waarnemer).lower().replace(' ', '').replace('.','')
+        return username
+    
     def findUser(self, waarnemer):
         ''' find a user corresponding to a waarnemer or None when not found '''
-        username = str(waarnemer).lower().replace(' ', '')
+        username = self.makeUsername(waarnemer)
         return self.findFirstObject('/user/', {'username': username})
 
     def createUser(self, waarnemer, group):
         ''' create user for waarnemer, add index number (max 10) if user already exists. Returns json of created user '''
-        basename = str(waarnemer).lower().replace(' ', '')
-        username = basename
+        username = self.makeUsername(waarnemer)
+        # generate a password, reset later
         password = genpasswd(8)
-        if waarnemer.tussenvoegsel:
-            last_name = waarnemer.tussenvoegsel + ' ' + waarnemer.achternaam
-        else:
-            last_name = waarnemer.achternaam
-        for index in range(1,10):
-            response = self.api.post('/user/', {
+
+        payload = {
                 'username': username, 
                 'password': password,
-                'first_name': waarnemer.voornaam or waarnemer.initialen,
-                'last_name': last_name,
                 'email': waarnemer.email,
                 'groups': [group],
                 'is_active': False,
                 'details': {
                     'phone_number': waarnemer.telefoon
                 }
-            })
+        }
+        
+        # set first or last name only when not null
+        first_name = waarnemer.voornaam or waarnemer.initialen
+        if first_name:
+            payload['first_name'] = first_name
+
+        last_name = waarnemer.tussenvoegsel + ' ' + waarnemer.achternaam if waarnemer.tussenvoegsel else waarnemer.achternaam
+        if last_name:
+            payload['last_name'] = last_name
+
+        for index in range(1,10):
+            response = self.api.post('/user/', payload)
             if response.ok:
                 break
             
@@ -159,11 +199,14 @@ class Command(BaseCommand):
                 problems = reason['username']
                 if 'A user with that username already exists.' in problems:
                     # try again with new username
-                    username = '{}{}'.format(basename,index)
+                    payload['username'] = username + str(index)
                     continue
                     
-        response.raise_for_status()
-        return response.json()
+            response.raise_for_status()
+            
+        user = response.json()
+        user['password'] = password
+        return user
 
     def addPhoto(self, photo):
         ''' copy image from server to fixeau.com '''
@@ -179,6 +222,7 @@ class Command(BaseCommand):
                 files = {'image':(filename, f)}
                 response = requests.post(url+'/photo/', data = payload, headers = headers, files = files)
                 response.raise_for_status()
+                photo = response.json()
                 logger.debug('Added photo {}: {}'.format(photo['id'],photo['name']))
                 return response.json()
         except HTTPError as error:
@@ -210,10 +254,17 @@ class Command(BaseCommand):
         response.raise_for_status()
         return response.json()
     
+    def makeSeriesName(self, meetpunt, category):
+        if category:
+            length = 64 - (len(category)+3)
+            name = '{} ({})'.format(truncate(meetpunt.name, length), category)
+        else:
+            name = truncate(meetpunt.name, 64)
+        return name
+    
     def findSeries(self, meetpunt, category):
         ''' find EC time series for a meetpunt and category combination '''
-        # need to make series name unique, filter on category does not work
-        name = '{} ({})'.format(meetpunt.name, category) if category else meetpunt.name
+        name = self.makeSeriesName(meetpunt, category)
         return self.findFirstObject('/series/', {
             'name': name,
             'source': meetpunt.device,
@@ -224,8 +275,7 @@ class Command(BaseCommand):
     def createSeries(self, meetpunt, category, folder = None):
         ''' create timeseries for a meetpunt, category combination '''
         location = meetpunt.latlng()
-        # need to make series name unique, filter on category does not work
-        name = '{} ({})'.format(meetpunt.name, category) if category else meetpunt.name
+        name = self.makeSeriesName(meetpunt, category)
         meta = {'identifier': meetpunt.identifier}
         photo = self.addPhoto(settings.BASE_DIR + meetpunt.photo_url) if meetpunt.photo_url else None
         if photo:
@@ -250,7 +300,11 @@ class Command(BaseCommand):
         })
         response.raise_for_status()
         return response.json()
-    
+
+    def getMeasurements(self, series):
+        ''' get all measurements for a time series '''
+        return self.findObjects('/measurement/',{'series': series})
+        
     def addWaarnemingen(self, meetpunt, queryset, target):
         ''' add all measurements for meetpunt to target time series using waarneming queryset '''
         location = meetpunt.latlng()
@@ -304,14 +358,16 @@ class Command(BaseCommand):
         logger.info('Creating users')
         users = {}
         for w in Waarnemer.objects.all():
+            if not w.waarneming_set.exists():
+                # skip waarnemers without measurements
+                continue
             try:
                 user = self.findUser(w)
                 if user:
-                    password = ''
                     logger.debug('Found user {} with username {} for {}'.format(user['id'], user['username'], w))
                 else:
                     user = self.createUser(w,groupId)
-                    logger.info('Created user {} with username {} and password {} for {}'.format(user['id'], user['username'], password, w))
+                    logger.info('Created user {} with username {} with password {} for {}'.format(user['id'], user['username'], user['password'], w))
                 users[w] = user
                           
             except HTTPError as error:
@@ -347,8 +403,6 @@ class Command(BaseCommand):
         logger.info('Creating time series')
         for m in Meetpunt.objects.all():
             try:
-                photo = self.addPhoto(settings.BASE_DIR + m.photo_url) if m.photo_url else None
-
                 # create dict of categories and related querysets    
                 cats = {
                     'Shallow': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
@@ -361,13 +415,15 @@ class Command(BaseCommand):
                         continue
                     target = self.findSeries(m, category)
                     if target:
-                        msg = 'Found existing time series {} for {}'.format(target['id'], m)
+                        logger.debug('Found existing time series {}: {}'.format(target['id'], target['name']))
+                        measurements = self.getMeasurements(target['id'])
+                        if next(measurements,None):
+                            # series already has measurements
+                            logger.debug('Time series already contains measurements')
+                            continue
                     else:
-                        target = self.createSeries(m, category, folder=folder, photo=photo)
-                        msg = 'Created time series {} for {}'.format(target['id'], m)
-                    if category:
-                        msg += ' ({})'.format(category)
-                    logger.debug(msg)
+                        target = self.createSeries(m, category, folder=folder)
+                        logger.debug('Created time series {} for {}'.format(target['id'], target['name']))
                     response = self.addWaarnemingen(m, queryset, target['id'])
                     if response:
                         # response is unicode, not dict??
