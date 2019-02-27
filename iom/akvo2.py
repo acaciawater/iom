@@ -49,7 +49,8 @@ class FlowAPI:
         '''
         data= {
             'client_id': 'curl',
-            'scope': 'openid',
+#             'scope': 'openid',
+            'scope': 'openid offline_access',
             'username': kwargs.get('username',self.username),
             'password': kwargs.get('password',self.password),
             'grant_type': 'password'
@@ -93,6 +94,7 @@ class FlowAPI:
         response = requests.get(url,params=kwargs,headers=headers)
         logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
         if response.status_code in [401, 403]:
+            logger.warning('WARNING: statuscode = {}. Refreshing token'.format(response.status_code))
             self.authenticate()
             response = requests.get(url,params=kwargs,headers=headers)
             logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
