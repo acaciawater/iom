@@ -204,4 +204,3 @@ class FlowAPI:
 #     api.authenticate(username=AKVO_USERNAME,password=AKVO_PASSWORD)
 #     folder = api.get_folder('Texel Meet')
 #     print (api.get_survey(folder, 'EC Meting'))
-    
