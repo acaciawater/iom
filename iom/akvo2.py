@@ -5,11 +5,11 @@ Created on Feb 14, 2019
 @author: theo
 '''
 import requests
-import dateutil
 import logging
 from pytz import utc
 from time import mktime
-parser = dateutil.parser.parser()
+from dateutil.parser import parser as duparser
+parser = duparser()
 logger = logging.getLogger(__name__)
 
 def as_timestamp(dt):
@@ -124,7 +124,7 @@ class FlowAPI:
         while True:
             for instance in response['formInstances']:
                 if beginDate or endDate:
-                    date = dateutil.parser.parse(instance['modifiedAt'])
+                    date = parser.parse(instance['modifiedAt'])
                     if beginDate and date < beginDate:
                         continue
                     if endDate and date > endDate:
@@ -198,4 +198,10 @@ class FlowAPI:
             return answer['filename']
         else:
             return answer
-            
+
+# if __name__ == '__main__':
+#     api = FlowAPI()
+#     api.authenticate(username=AKVO_USERNAME,password=AKVO_PASSWORD)
+#     folder = api.get_folder('Texel Meet')
+#     print (api.get_survey(folder, 'EC Meting'))
+    
