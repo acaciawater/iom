@@ -17,6 +17,7 @@ from iom import util
 from iom.akvo2 import FlowAPI, parser
 from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
+from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +185,8 @@ def importAkvoMonitoring(api,akvo,days):
         questions = api.get_questions(akvo.surveyid,formid) 
         instances = api.get_form_instances(akvo.surveyid, formid, beginDate=beginDate)
         for instance in instances:
-
             identifier=instance['identifier']
-            displayName = instance['displayName']
+#             displayName = instance['displayName']
             submitter = instance['submitter']
             device = instance['deviceIdentifier']
             date=instance['submissionDate']

@@ -6,8 +6,8 @@ Created on Feb 14, 2019
 '''
 import requests
 import logging
+import time
 from pytz import utc
-from time import mktime
 from dateutil.parser import parser as duparser
 parser = duparser()
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def as_timestamp(dt):
         return None
     if dt.tzinfo is None:
         dt = utc.localize(dt)
-    return int(mktime(dt.utctimetuple())*1000)
+    return int(time.mktime(dt.utctimetuple())*1000)
 
 def find_key(array, key, value):
     ''' return key in dict of dict where key=value '''
@@ -42,62 +42,61 @@ class FlowAPI:
         self.password=kwargs.get('password')
         self.auth={}
         self.url='https://api.akvo.org/flow/orgs/acacia/'
+        self.expire=time.time()
 
+    def get_auth(self, data):
+        '''
+        send post request to auth endpoint and obtain token information
+        '''
+        response = requests.post('https://login.akvo.org/auth/realms/akvo/protocol/openid-connect/token',data=data)
+        response.raise_for_status()
+        self.auth = response.json()
+        # set expiration time
+        self.expire = time.time() + self.auth.get('expires_in',300)
+        return self.auth
+                
     def authenticate(self,**kwargs):
         '''
         Authenticate user by sending username/password to login endpoint and retrieve access_token
         '''
-        data= {
-            'client_id': 'curl',
-#             'scope': 'openid',
-            'scope': 'openid offline_access',
-            'username': kwargs.get('username',self.username),
-            'password': kwargs.get('password',self.password),
-            'grant_type': 'password'
-        }
-        response = requests.post('https://login.akvo.org/auth/realms/akvo/protocol/openid-connect/token',data=data)
-        response.raise_for_status()
-        
         # update credentials
-        self.username = data['username']
-        self.password = data['password']
-        self.auth = response.json()
-        return self.auth
+        self.username = kwargs.get('username',self.username)
+        self.password = kwargs.get('password',self.password)
+
+        return self.get_auth({
+            'client_id': 'curl',
+            'scope': 'openid',
+            'username': self.username,
+            'password': self.password,
+            'grant_type': 'password'
+        })
+        
 
     def refresh_token(self):
         '''
         Refresh token (token expires after 300-1800 seconds)
         '''
-        if not self.auth:
-            # not previously authenticated
-            return self.authenticate()
-        data = {
+        return self.get_auth({
             'client_id': 'curl',
             'scope': 'openid',
             'refresh_token': self.auth['refresh_token'],
             'grant_type': 'refresh_token'
-        }
-        response = requests.post('https://login.akvo.org/auth/realms/akvo/protocol/openid-connect/token',data=data)
-        response.raise_for_status()
-        self.auth=response.json()
-        return self.auth
+        })
              
     def request(self, url, **kwargs):
         ''' send a GET request and convert the json response to a python dict '''
+        if time.time() > (self.expire - 10):
+            # token expired, or will expire within 10 seconds
+            self.refresh_token()
+
         token = self.auth.get('access_token')
-        if not token:
-            raise 'Not authenticated.'
+            
         headers = {'User-Agent': 'curl/7.54.0',
                    'Accept': 'application/vnd.akvo.flow.v2+json',
                    'Authorization': 'Bearer '+token
         }
         response = requests.get(url,params=kwargs,headers=headers)
         logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
-        if response.status_code in [401, 403]:
-            logger.warning('WARNING: statuscode = {}. Refreshing token'.format(response.status_code))
-            self.authenticate()
-            response = requests.get(url,params=kwargs,headers=headers)
-            logger.debug('{} {}: {}'.format(response.status_code, response.reason, response.content))
         response.raise_for_status()
         return response.json()
 
@@ -199,8 +198,13 @@ class FlowAPI:
         else:
             return answer
 
-# if __name__ == '__main__':
-#     api = FlowAPI()
-#     api.authenticate(username=AKVO_USERNAME,password=AKVO_PASSWORD)
+if __name__ == '__main__':
+    AKVO_USERNAME = 'theo acacia water'
+    AKVO_PASSWORD = 'TheoAcaciaWater12345!'
+    api = FlowAPI()
+    api.authenticate(username=AKVO_USERNAME,password=AKVO_PASSWORD)
+    while True:
+        print('...')
+        time.sleep(1)
 #     folder = api.get_folder('Texel Meet')
 #     print (api.get_survey(folder, 'EC Meting'))
