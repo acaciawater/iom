@@ -126,6 +126,10 @@ LOGGING = {
             'backupCount': 0,
             'formatter': 'default'
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
         'django': {
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
@@ -143,6 +147,11 @@ LOGGING = {
     'loggers': {
         'django.request': {
             'handlers': ['django'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'iom.management': {
+            'handlers': ['console',],
             'level': 'DEBUG',
             'propagate': True,
         },
