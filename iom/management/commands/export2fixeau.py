@@ -262,10 +262,10 @@ class Command(BaseCommand):
     
     def makeSeriesName(self, meetpunt, category):
         if category:
-            length = 50 - (len(category)+3)
+            length = 24 - (len(category)+3)
             name = '{} ({})'.format(truncate(meetpunt.name, length, 'begin'), category)
         else:
-            name = truncate(meetpunt.name, 50, 'begin')
+            name = truncate(meetpunt.name, 24, 'begin')
         return name
     
     def findSeries(self, meetpunt, category):
