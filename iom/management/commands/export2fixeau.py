@@ -232,9 +232,14 @@ class Command(BaseCommand):
             logger.error('ERROR uploading photo {}: {}'.format(photo, error))
         return None
     
-    def getSource(self, sourceId):
-        ''' return datasource object with sourceid '''
-        return self.getObject('/source/', sourceId)
+    def cleanDeviceName(self, device):
+        ''' clean device name so that it is fully alphanumeric '''
+        return re.sub(r'[^A-Za-z0-9]','',device)
+
+    def getSource(self, device):
+        ''' return datasource object for device '''
+        sourceid = self.cleanDeviceName(device)
+        return self.getObject('/source/', sourceid)
         
     def createSource(self, device, users, group, folder=None):
         ''' create a datasource for a device. First add source_type AkvoMobile to database
@@ -242,8 +247,9 @@ class Command(BaseCommand):
         users: list of user names that use the device
         group: group id for device
         '''
+        sourceid = self.cleanDeviceName(device)
         response = self.api.post('/source/', {
-            'id': device,
+            'id': sourceid,
             'name': device,
             'description': 'Akvo phone '+device,
             'source_type': 'AkvoMobile',
@@ -256,18 +262,19 @@ class Command(BaseCommand):
     
     def makeSeriesName(self, meetpunt, category):
         if category:
-            length = 64 - (len(category)+3)
-            name = '{} ({})'.format(truncate(meetpunt.name, length), category)
+            length = 50 - (len(category)+3)
+            name = '{} ({})'.format(truncate(meetpunt.name, length, 'begin'), category)
         else:
-            name = truncate(meetpunt.name, 64)
+            name = truncate(meetpunt.name, 50, 'begin')
         return name
     
     def findSeries(self, meetpunt, category):
         ''' find EC time series for a meetpunt and category combination '''
         name = self.makeSeriesName(meetpunt, category)
+        sourceid = self.cleanDeviceName(meetpunt.device)
         return self.findFirstObject('/series/', {
             'name': name,
-            'source': meetpunt.device,
+            'source': sourceid,
             'parameter': 'EC',
             'category': category
             })
@@ -276,6 +283,7 @@ class Command(BaseCommand):
         ''' create timeseries for a meetpunt, category combination '''
         location = meetpunt.latlng()
         name = self.makeSeriesName(meetpunt, category)
+        sourceid = self.cleanDeviceName(meetpunt.device)
         meta = {'identifier': meetpunt.identifier}
         photo = self.addPhoto(settings.BASE_DIR + meetpunt.photo_url) if meetpunt.photo_url else None
         if photo:
@@ -293,7 +301,7 @@ class Command(BaseCommand):
             },
             'meta': meta,
             'folder': folder,
-            'source': meetpunt.device,
+            'source': sourceid,
             'parameter': 'EC',
             'category': category,
             'unit': 'mS/cm'      
@@ -308,7 +316,7 @@ class Command(BaseCommand):
     def addWaarnemingen(self, meetpunt, queryset, target):
         ''' add all measurements for meetpunt to target time series using waarneming queryset '''
         location = meetpunt.latlng()
-        device = meetpunt.device
+        sourceid = self.cleanDeviceName(meetpunt.device)
 
         def waarneming2measurement(waarneming, target):
             ''' convert waarneming to measurement and set series to target '''
@@ -326,7 +334,7 @@ class Command(BaseCommand):
                     'type': 'Point'
                 },
                 'meta': meta,
-                'source': device,
+                'source': sourceid,
                 'parameter': 'EC',
                 'unit': 'mS/cm',
                 'series': target} 
@@ -346,59 +354,58 @@ class Command(BaseCommand):
         logger.info('Logging in, url={}'.format(url))
         self.api.login(settings.FIXEAU_USERNAME,settings.FIXEAU_PASSWORD)
         
-        # get or create project group
-        groupName = project.name
-        group = self.findGroup(groupName)
-        if not group:
-            logger.info('Creating group {}'.format(groupName))
-            group = self.createGroup(groupName)
-        groupId = group['id']
-             
-        # get or create users
-        logger.info('Creating users')
-        users = {}
-        for w in Waarnemer.objects.all():
-            if not w.waarneming_set.exists():
-                # skip waarnemers without measurements
-                continue
-            try:
-                user = self.findUser(w)
-                if user:
-                    logger.debug('Found user {} with username {} for {}'.format(user['id'], user['username'], w))
-                else:
-                    user = self.createUser(w,groupId)
-                    logger.info('Created user {} with username {} with password {} for {}'.format(user['id'], user['username'], user['password'], w))
-                users[w] = user
-                          
-            except HTTPError as error:
-                response = error.response
-                print('ERROR creating user {}: {}'.format(w,response.json()))
-                  
-        # build dictionary of devices with set of waarnemers that have used the device
-        logger.info('Querying unique devices in '+project.name)
-        devices = {}    
-        for w in Waarneming.objects.all():
-            if w.device in devices:
-                devices[w.device].add(w.waarnemer)
-            else:
-                devices[w.device] = set([w.waarnemer])
-        logger.debug('{} devices found'.format(len(devices)))
-      
-        # add devices (create data sources)
-        logger.info('Creating data sources')
-        for device, waarnemers in devices.items():
-            usernames = [users[w]['username'] for w in waarnemers if w in users] 
-            try:
-                source = self.getSource(device)
-                if source:
-                    logger.debug('Found existing data source {}'.format(device))
-                else:
-                    source = self.createSource(device, usernames, groupId, folder=folder)
-                    logger.debug('Created data source {}'.format(device))
-            except HTTPError as error:
-                response = error.response
-                print('ERROR creating data source {}: {}'.format(device,response.json()))
-                break
+#         # get or create project group
+#         groupName = project.name
+#         group = self.findGroup(groupName)
+#         if not group:
+#             logger.info('Creating group {}'.format(groupName))
+#             group = self.createGroup(groupName)
+#         groupId = group['id']
+#              
+#         # get or create users
+#         logger.info('Creating users')
+#         users = {}
+#         for w in Waarnemer.objects.all():
+#             if not w.waarneming_set.exists():
+#                 # skip waarnemers without measurements
+#                 continue
+#             try:
+#                 user = self.findUser(w)
+#                 if user:
+#                     logger.debug('Found user {} with username {} for {}'.format(user['id'], user['username'], w))
+#                 else:
+#                     user = self.createUser(w,groupId)
+#                     logger.info('Created user {} with username {} with password {} for {}'.format(user['id'], user['username'], user['password'], w))
+#                 users[w] = user
+#                           
+#             except HTTPError as error:
+#                 response = error.response
+#                 print('ERROR creating user {}: {}'.format(w,response.json()))
+#                   
+#         # build dictionary of devices with set of waarnemers that have used the device
+#         logger.info('Querying unique devices in '+project.name)
+#         devices = {}    
+#         for w in Waarneming.objects.all():
+#             if w.device in devices:
+#                 devices[w.device].add(w.waarnemer)
+#             else:
+#                 devices[w.device] = set([w.waarnemer])
+#         logger.debug('{} devices found'.format(len(devices)))
+#       
+#         # add devices (create data sources)
+#         logger.info('Creating data sources')
+#         for device, waarnemers in devices.items():
+#             usernames = [users[w]['username'] for w in waarnemers if w in users] 
+#             try:
+#                 source = self.getSource(device)
+#                 if source:
+#                     logger.debug('Found existing data source {}'.format(source['name']))
+#                 else:
+#                     source = self.createSource(device, usernames, groupId, folder=folder)
+#                     logger.debug('Created data source {}'.format(device))
+#             except HTTPError as error:
+#                 response = error.response
+#                 print('ERROR creating data source {}: {}'.format(device,response.json()))
    
         logger.info('Creating time series')
         for m in Meetpunt.objects.all():
@@ -416,6 +423,7 @@ class Command(BaseCommand):
                     target = self.findSeries(m, category)
                     if target:
                         logger.debug('Found existing time series {}: {}'.format(target['id'], target['name']))
+                        continue
                         measurements = self.getMeasurements(target['id'])
                         if next(measurements,None):
                             # series already has measurements
