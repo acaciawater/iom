@@ -446,8 +446,8 @@ class Command(BaseCommand):
             try:
                 # create dict of categories and related querysets    
                 cats = {
-                    'Shallow': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
-                    'Deep': m.waarneming_set.filter(naam__iexact="ec_diep"),
+                    'Ondiep': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
+                    'Diep': m.waarneming_set.filter(naam__iexact="ec_diep"),
                     '': m.waarneming_set.filter(naam__iexact="ec")
                 }
                 for category, queryset in cats.items():
