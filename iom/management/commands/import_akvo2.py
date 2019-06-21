@@ -95,7 +95,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
         try:
             lon,lat=geoloc
             location = Point(float(lon),float(lat),srid=4326)
-            location.transform(28992)
+#             location.transform(28992)
         except:
             logger.error(u'Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
             continue
