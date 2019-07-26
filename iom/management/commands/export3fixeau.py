@@ -12,6 +12,7 @@ from requests.exceptions import HTTPError
 
 from acacia.data.models import Project
 from iom.models import Waarnemer, Meetpunt, Waarneming
+import decimal
 
 logger = logging.getLogger(__name__)
 
@@ -353,8 +354,8 @@ class Command(BaseCommand):
                 'parameter': 'EC',
                 'unit': 'mS/cm',
                 'series': target} 
-            
-        measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.order_by('datum')]
+        # exclude nan values (json encoder in acaciadb api does not like them)
+        measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.exclude(waarde=decimal.Decimal('NaN')).order_by('datum')]
         response = self.api.post('/measurement/',measurements)
         response.raise_for_status()
         return response
@@ -442,12 +443,14 @@ class Command(BaseCommand):
                 print('ERROR creating data source {}: {}'.format(device,response.json()))
    
         logger.info('Creating time series')
+        deep = 'Deep' if 'test.fixeau.com' in url else 'Diep'
+        shallow = 'Shallow' if 'test.fixeau.com' in url else 'Ondiep'
         for m in Meetpunt.objects.all():
             try:
                 # create dict of categories and related querysets    
                 cats = {
-                    'Ondiep': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
-                    'Diep': m.waarneming_set.filter(naam__iexact="ec_diep"),
+                    shallow: m.waarneming_set.filter(naam__iexact="ec_ondiep"),
+                    deep: m.waarneming_set.filter(naam__iexact="ec_diep"),
                     '': m.waarneming_set.filter(naam__iexact="ec")
                 }
                 for category, queryset in cats.items():
