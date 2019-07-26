@@ -13,6 +13,7 @@ from requests.exceptions import HTTPError
 from acacia.data.models import Project
 from iom.models import Waarnemer, Meetpunt, Waarneming
 import decimal
+from math import isnan
 
 logger = logging.getLogger(__name__)
 
@@ -338,10 +339,11 @@ class Command(BaseCommand):
             ''' convert waarneming to measurement and set series to target '''
             photo = self.addPhoto(settings.BASE_DIR + waarneming.foto_url) if waarneming.foto_url else None
             meta = {'imageUrl': photo['image'], 'image_id': photo['id']} if photo else None
+            waarde = None if isnan(waarneming.waarde) else waarneming.waarde
             return {
                 'time': waarneming.datum.isoformat(),
                 # assume units is μS/cm when EC > 50
-                'value': waarneming.waarde/1000.0 if waarneming.waarde > 50 else waarneming.waarde,
+                'value': waarde/1000.0 if waarde > 50 else waarde,
                 'location': {
                     'coordinates': [
                         location[1],
@@ -355,7 +357,9 @@ class Command(BaseCommand):
                 'unit': 'mS/cm',
                 'series': target} 
         # exclude nan values (json encoder in acaciadb api does not like them)
-        measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.exclude(waarde=decimal.Decimal('NaN')).order_by('datum')]
+        # MySQL does not recognize nan
+        #measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.exclude(waarde=decimal.Decimal('NaN')).order_by('datum')]
+        measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.order_by('datum')]
         response = self.api.post('/measurement/',measurements)
         response.raise_for_status()
         return response
