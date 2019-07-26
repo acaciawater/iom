@@ -18,7 +18,7 @@ SITE_ID = 1
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['texelmeet.nl']
 
 INSTALLED_APPS = (
     'grappelli',
