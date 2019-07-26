@@ -22,10 +22,12 @@ def genstring(charset, length):
 
 def genpasswd(length=8):
     ''' generate a password of length characters '''
-    charset = string.ascii_letters + string.digits + '!@#$%&*+=-?.:'
+    charset = string.ascii_letters + string.digits# + '!@#$*?'
+    # remove difficult-to-read characters
+    charset = charset.translate(None,'oO0l1iI')
     return genstring(charset,length)
 
-def truncate(string, maxlength, ellipsis='...', position='end'):
+def truncate(string, maxlength, ellipsis='..', position='begin'):
     ''' truncate a string to maxlength characters and insert placeholder in truncated string. 
     position can be begin, end or middle '''
     
@@ -107,7 +109,7 @@ class Command(BaseCommand):
         parser.add_argument('-f','--folder',
                 action='store',
                 dest = 'folder',
-                default = 6,
+                default = 7, #RijnlandMeet
                 help = 'Folder id for data sources and time series')
         
     def findObjects(self, path, query):
@@ -162,6 +164,11 @@ class Command(BaseCommand):
         username = self.makeUsername(waarnemer)
         return self.findFirstObject('/user/', {'username': username})
 
+    def setPassword(self, user, password):
+        response = self.api.patch('/user/{}/'.format(user['id']), {'password': password})
+        response.raise_for_status()
+        return password
+    
     def createUser(self, waarnemer, group):
         ''' create user for waarnemer, add index number (max 10) if user already exists. Returns json of created user '''
         username = self.makeUsername(waarnemer)
@@ -232,9 +239,14 @@ class Command(BaseCommand):
             logger.error('ERROR uploading photo {}: {}'.format(photo, error))
         return None
     
-    def getSource(self, sourceId):
-        ''' return datasource object with sourceid '''
-        return self.getObject('/source/', sourceId)
+    def cleanDeviceName(self, device):
+        ''' clean device name so that it is fully alphanumeric '''
+        return re.sub(r'[^A-Za-z0-9]','',device)
+
+    def getSource(self, device):
+        ''' return datasource object for device '''
+        sourceid = self.cleanDeviceName(device)
+        return self.getObject('/source/', sourceid)
         
     def createSource(self, device, users, group, folder=None):
         ''' create a datasource for a device. First add source_type AkvoMobile to database
@@ -242,8 +254,9 @@ class Command(BaseCommand):
         users: list of user names that use the device
         group: group id for device
         '''
+        sourceid = self.cleanDeviceName(device)
         response = self.api.post('/source/', {
-            'id': device,
+            'id': sourceid,
             'name': device,
             'description': 'Akvo phone '+device,
             'source_type': 'AkvoMobile',
@@ -254,20 +267,29 @@ class Command(BaseCommand):
         response.raise_for_status()
         return response.json()
     
-    def makeSeriesName(self, meetpunt, category):
+    def makeSeriesName(self, meetpunt, category, maxlength=24):
+        name = meetpunt.name.strip()
+        if len(name) > maxlength:
+            # remove everything up to 'achternaam - ' 
+            tag = '{} - '.format(meetpunt.waarnemer.achternaam).lower()
+            pos = name.lower().find(tag)
+            if pos >= 0:
+                name = name[pos+len(tag):]
+                
         if category:
-            length = 64 - (len(category)+3)
-            name = '{} ({})'.format(truncate(meetpunt.name, length), category)
+            postfix=':'+category[0].lower()
+            name = truncate(name, maxlength-2) + postfix
         else:
-            name = truncate(meetpunt.name, 64)
+            name = truncate(name, maxlength)
         return name
     
     def findSeries(self, meetpunt, category):
         ''' find EC time series for a meetpunt and category combination '''
         name = self.makeSeriesName(meetpunt, category)
+        sourceid = self.cleanDeviceName(meetpunt.device)
         return self.findFirstObject('/series/', {
             'name': name,
-            'source': meetpunt.device,
+            'source': sourceid,
             'parameter': 'EC',
             'category': category
             })
@@ -276,6 +298,7 @@ class Command(BaseCommand):
         ''' create timeseries for a meetpunt, category combination '''
         location = meetpunt.latlng()
         name = self.makeSeriesName(meetpunt, category)
+        sourceid = self.cleanDeviceName(meetpunt.device)
         meta = {'identifier': meetpunt.identifier}
         photo = self.addPhoto(settings.BASE_DIR + meetpunt.photo_url) if meetpunt.photo_url else None
         if photo:
@@ -293,7 +316,7 @@ class Command(BaseCommand):
             },
             'meta': meta,
             'folder': folder,
-            'source': meetpunt.device,
+            'source': sourceid,
             'parameter': 'EC',
             'category': category,
             'unit': 'mS/cm'      
@@ -308,7 +331,7 @@ class Command(BaseCommand):
     def addWaarnemingen(self, meetpunt, queryset, target):
         ''' add all measurements for meetpunt to target time series using waarneming queryset '''
         location = meetpunt.latlng()
-        device = meetpunt.device
+        sourceid = self.cleanDeviceName(meetpunt.device)
 
         def waarneming2measurement(waarneming, target):
             ''' convert waarneming to measurement and set series to target '''
@@ -326,7 +349,7 @@ class Command(BaseCommand):
                     'type': 'Point'
                 },
                 'meta': meta,
-                'source': device,
+                'source': sourceid,
                 'parameter': 'EC',
                 'unit': 'mS/cm',
                 'series': target} 
@@ -334,10 +357,24 @@ class Command(BaseCommand):
         measurements = [waarneming2measurement(waarneming,target) for waarneming in queryset.order_by('datum')]
         response = self.api.post('/measurement/',measurements)
         response.raise_for_status()
-        return response.json()
+        return response
 
+    def cycle(self,array):
+        while True:
+            for elem in array:
+                yield elem
+
+    def test_series_names(self):
+        cat = self.cycle(['o','d'])
+        for meetpunt in Meetpunt.objects.all():
+            name = self.makeSeriesName(meetpunt,next(cat),24)
+            if name != meetpunt.name:
+                print (meetpunt.name, '=>', name)
+                
     def handle(self, *args, **options):
 
+        #self.test_series_names()
+    
         url = options.get('url')
         folder = options.get('folder')        
         project = Project.objects.first()
@@ -353,7 +390,7 @@ class Command(BaseCommand):
             logger.info('Creating group {}'.format(groupName))
             group = self.createGroup(groupName)
         groupId = group['id']
-             
+              
         # get or create users
         logger.info('Creating users')
         users = {}
@@ -364,16 +401,19 @@ class Command(BaseCommand):
             try:
                 user = self.findUser(w)
                 if user:
-                    logger.debug('Found user {} with username {} for {}'.format(user['id'], user['username'], w))
+                    password = genpasswd(8)
+                    self.setPassword(user, password)
+                    logger.debug('{},{},{},"{}"'.format(w, user['id'], user['username'], password))
+                    pass
                 else:
                     user = self.createUser(w,groupId)
                     logger.info('Created user {} with username {} with password {} for {}'.format(user['id'], user['username'], user['password'], w))
                 users[w] = user
-                          
+                            
             except HTTPError as error:
                 response = error.response
                 print('ERROR creating user {}: {}'.format(w,response.json()))
-                  
+                    
         # build dictionary of devices with set of waarnemers that have used the device
         logger.info('Querying unique devices in '+project.name)
         devices = {}    
@@ -383,7 +423,9 @@ class Command(BaseCommand):
             else:
                 devices[w.device] = set([w.waarnemer])
         logger.debug('{} devices found'.format(len(devices)))
-      
+        for device, waarnemers in devices.items():
+            logger.debug('device: {}, used by: {}'.format(device, ','.join(map(str,waarnemers))))
+                         
         # add devices (create data sources)
         logger.info('Creating data sources')
         for device, waarnemers in devices.items():
@@ -391,22 +433,21 @@ class Command(BaseCommand):
             try:
                 source = self.getSource(device)
                 if source:
-                    logger.debug('Found existing data source {}'.format(device))
+                    logger.debug('Found existing data source {} for {}'.format(source['name'],','.join(usernames)))
                 else:
                     source = self.createSource(device, usernames, groupId, folder=folder)
-                    logger.debug('Created data source {}'.format(device))
+                    logger.debug('Created data source {} for {}'.format(device,','.join(usernames)))
             except HTTPError as error:
                 response = error.response
                 print('ERROR creating data source {}: {}'.format(device,response.json()))
-                break
    
         logger.info('Creating time series')
         for m in Meetpunt.objects.all():
             try:
                 # create dict of categories and related querysets    
                 cats = {
-                    'Shallow': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
-                    'Deep': m.waarneming_set.filter(naam__iexact="ec_diep"),
+                    'Ondiep': m.waarneming_set.filter(naam__iexact="ec_ondiep"),
+                    'Diep': m.waarneming_set.filter(naam__iexact="ec_diep"),
                     '': m.waarneming_set.filter(naam__iexact="ec")
                 }
                 for category, queryset in cats.items():
@@ -426,8 +467,7 @@ class Command(BaseCommand):
                         logger.debug('Created time series {} for {}'.format(target['id'], target['name']))
                     response = self.addWaarnemingen(m, queryset, target['id'])
                     if response:
-                        # response is unicode, not dict??
-                        resp = json.loads(response)
+                        resp = response.json()
                         logger.debug('Added {} measurements'.format(resp.get('count')))
                         
             except HTTPError as error:

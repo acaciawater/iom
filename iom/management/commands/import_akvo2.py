@@ -17,6 +17,7 @@ from iom import util
 from iom.akvo2 import FlowAPI, parser
 from iom.models import Meetpunt, Waarnemer, Alias
 from iom.exif import Exif
+from requests.exceptions import HTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ def importAkvoRegistration(api,akvo,projectlocatie,user,days):
         try:
             lon,lat=geoloc
             location = Point(float(lon),float(lat),srid=4326)
-            location.transform(28992)
+#             location.transform(28992)
         except:
             logger.error(u'Probleem met coordinaten {loc}. waarnemer = {waar}, meetpunt = {mp}'.format(loc=geoloc, waar = akvowaarnemer or submitter, mp=meetid))
             continue
@@ -184,9 +185,8 @@ def importAkvoMonitoring(api,akvo,days):
         questions = api.get_questions(akvo.surveyid,formid) 
         instances = api.get_form_instances(akvo.surveyid, formid, beginDate=beginDate)
         for instance in instances:
-
             identifier=instance['identifier']
-            displayName = instance['displayName']
+#             displayName = instance['displayName']
             submitter = instance['submitter']
             device = instance['deviceIdentifier']
             date=instance['submissionDate']
